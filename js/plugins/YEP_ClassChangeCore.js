@@ -372,16 +372,18 @@ Yanfly.Param = Yanfly.Param || {};
 Yanfly.Icon = Yanfly.Icon || {};
 
 Yanfly.Param.CCCCmdName = String(Yanfly.Parameters['Class Command']);
-Yanfly.Param.CCCAutoAdd = eval(String(Yanfly.Parameters['Auto Add Menu']));
+// Safely parse boolean values without eval
+Yanfly.Param.CCCAutoAdd = String(Yanfly.Parameters['Auto Add Menu']).trim().toLowerCase() === 'true';
 Yanfly.Param.CCCShowCmd = String(Yanfly.Parameters['Show Command']);
-Yanfly.Param.CCCShowCmd = eval(Yanfly.Param.CCCShowCmd);
+Yanfly.Param.CCCShowCmd = String(Yanfly.Param.CCCShowCmd).trim().toLowerCase() === 'true';
 Yanfly.Param.CCCEnableCmd = String(Yanfly.Parameters['Enable Command']);
-Yanfly.Param.CCCEnableCmd = eval(Yanfly.Param.CCCEnableCmd);
+Yanfly.Param.CCCEnableCmd = String(Yanfly.Param.CCCEnableCmd).trim().toLowerCase() === 'true';
 Yanfly.Param.CCCAutoPlace = String(Yanfly.Parameters['Auto Place Command']);
-Yanfly.Param.CCCAutoPlace = eval(Yanfly.Param.CCCAutoPlace);
+Yanfly.Param.CCCAutoPlace = String(Yanfly.Param.CCCAutoPlace).trim().toLowerCase() === 'true';
 Yanfly.Icon.DefaultClass = Number(Yanfly.Parameters['Default Icon']);
 Yanfly.Param.CCCMaintainLv = String(Yanfly.Parameters['Maintain Levels']);
-Yanfly.Param.CCCMaintainLv = eval(Yanfly.Param.CCCMaintainLv);
+// Safely parse boolean values without eval
+Yanfly.Param.CCCMaintainLv = String(Yanfly.Param.CCCMaintainLv).trim().toLowerCase() === 'true';
 Yanfly.Param.CCCUnlock = String(Yanfly.Parameters['Unlocked Classes']);
 Yanfly.Param.CCCUnlock = Yanfly.Param.CCCUnlock.split(' ');
 if (Yanfly.Param.CCCUnlock === '') Yanfly.Param.CCCUnlock = [];
@@ -391,11 +393,12 @@ for (Yanfly.i = 0; Yanfly.i < Yanfly.Param.CCCUnlock.length; ++Yanfly.i) {
 
 Yanfly.Param.CCCClassCmd = String(Yanfly.Parameters['Class Change Command']);
 Yanfly.Param.CCCShowClass = String(Yanfly.Parameters['Show Class Change']);
-Yanfly.Param.CCCShowClass = eval(Yanfly.Param.CCCShowClass);
+// Safely parse boolean values without eval
+Yanfly.Param.CCCShowClass = String(Yanfly.Param.CCCShowClass).trim().toLowerCase() === 'true';
 Yanfly.Param.CCCEnableClass = String(Yanfly.Parameters['Enable Class Change']);
-Yanfly.Param.CCCEnableClass = eval(Yanfly.Param.CCCEnableClass);
+Yanfly.Param.CCCEnableClass = String(Yanfly.Param.CCCEnableClass).trim().toLowerCase() === 'true';
 Yanfly.Param.CCCShowLearn = String(Yanfly.Parameters['Show Skill Learn']);
-Yanfly.Param.CCCShowLearn = eval(Yanfly.Param.CCCShowLearn);
+Yanfly.Param.CCCShowLearn = String(Yanfly.Param.CCCShowLearn).trim().toLowerCase() === 'true';
 Yanfly.Param.CCCFinishCmd = String(Yanfly.Parameters['Finish Command']);
 Yanfly.Param.CCCTextAlign = String(Yanfly.Parameters['Text Alignment']);
 
@@ -432,12 +435,13 @@ DataManager.processCCCNotetags1 = function(group) {
 DataManager.processCCCNotetags2 = function(group) {
   var note1a = /<(?:UNLOCK CLASS|unlock classes):[ ]*(\d+(?:\s*,\s*\d+)*)>/i;
   var note1b = /<(?:UNLOCK CLASS|unlock classes):[ ](\d+)[ ](?:TO)[ ](\d+)>/i;
-  var note2a = /<(?:CLASS)[ ](\d+)[ ](?:CHARACTER|SPRITE):[ ](.*)[ ](\d+)>/i;
-  var note2b = /<(.*)[ ](?:CHARACTER|SPRITE):[ ](.*)[ ](\d+)>/i;
-  var note3a = /<(?:CLASS)[ ](\d+)[ ](?:FACE):[ ](.*)[ ](\d+)>/i;
-  var note3b = /<(.*)[ ](?:FACE):[ ](.*)[ ](\d+)>/i;
-  var note4a = /<(?:CLASS)[ ](\d+)[ ](?:BATTLER):[ ](.*)>/i;
-  var note4b = /<(.*)[ ](?:BATTLER):[ ](.*)>/i;
+  // Using more specific character classes with bounded quantifiers to prevent super-linear backtracking
+  var note2a = /<(?:CLASS)[ ](\d+)[ ](?:CHARACTER|SPRITE):[ ]([\w\s\.]{1,50})[ ](\d+)>/i;
+  var note2b = /<([\w\s\.]{1,50})[ ](?:CHARACTER|SPRITE):[ ]([\w\s\.]{1,50})[ ](\d+)>/i;
+  var note3a = /<(?:CLASS)[ ](\d+)[ ](?:FACE):[ ]([\w\s\.]{1,50})[ ](\d+)>/i;
+  var note3b = /<([\w\s\.]{1,50})[ ](?:FACE):[ ]([\w\s\.]{1,50})[ ](\d+)>/i;
+  var note4a = /<(?:CLASS)[ ](\d+)[ ](?:BATTLER):[ ]([\w\s\.]{1,50})>/i;
+  var note4b = /<([\w\s\.]{1,50})[ ](?:BATTLER):[ ]([\w\s\.]{1,50})>/i;
   for (var n = 1; n < group.length; n++) {
     var obj = group[n];
     var notedata = obj.note.split(/[\r\n]+/);
@@ -525,11 +529,11 @@ DataManager.processCCCNotetags3 = function(group) {
       } else if (line.match(/<\/(?:LEVEL UNLOCK REQUIREMENTS)>/i)) {
         evalMode = 'none';
       } else if (evalMode === 'level unlock requirements') {
-        if (line.match(/CLASS[ ](\d+):[ ]LEVEL[ ](\d+)/i)) {
+        if (line.match(/CLASS[ ](\d{1,10}):[ ]LEVEL[ ](\d{1,10})/i)) {
           var classId = parseInt(RegExp.$1);
           var level = parseInt(RegExp.$2);
           obj.levelUnlockRequirements[classId] = level;
-        } else if (line.match(/(.*):[ ]LEVEL[ ](\d+)/i)) {
+        } else if (line.match(/([\w\s\.]{1,50}):[ ]LEVEL[ ](\d{1,10})/i)) {
           var name = String(RegExp.$1).toUpperCase();
           var level = parseInt(RegExp.$2);
           var classId = Yanfly.ClassIdRef[name];

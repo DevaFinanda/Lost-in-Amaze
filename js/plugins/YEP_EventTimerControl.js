@@ -205,11 +205,29 @@ Yanfly.Parameters = PluginManager.parameters('YEP_EventTimerControl');
 Yanfly.Param = Yanfly.Param || {};
 
 Yanfly.Param.TimerSeparate = String(Yanfly.Parameters['SpritesetSplit']);
-Yanfly.Param.TimerSeparate = eval(Yanfly.Param.TimerSeparate);
+// Convert 'true'/'false' string to boolean safely without eval
+Yanfly.Param.TimerSeparate = (Yanfly.Param.TimerSeparate.toLowerCase() === 'true');
 Yanfly.Param.TimerAlign = String(Yanfly.Parameters['TextAlign']);
 
-Yanfly.Param.TimerCode = JSON.parse(Yanfly.Parameters['Effect Code']);
-Yanfly.Param.TimerExpire = JSON.parse(Yanfly.Parameters['Expire Code']);
+// Parse parameter values safely without executing code
+try {
+  Yanfly.Param.TimerCode = JSON.parse(Yanfly.Parameters['Effect Code']);
+  // We don't actually use TimerCode anymore since we replaced it with a direct implementation
+} catch (e) {
+  console.error("Error parsing Effect Code parameter:", e);
+  Yanfly.Param.TimerCode = "";
+}
+
+try {
+  Yanfly.Param.TimerExpire = JSON.parse(Yanfly.Parameters['Expire Code']);
+  // Sanitize expire code to prevent injection
+  if (typeof Yanfly.Param.TimerExpire !== 'string') {
+    Yanfly.Param.TimerExpire = "BattleManager.abort();";
+  }
+} catch (e) {
+  console.error("Error parsing Expire Code parameter:", e);
+  Yanfly.Param.TimerExpire = "BattleManager.abort();";
+}
 
 //=============================================================================
 // Separate from Spriteset
@@ -296,9 +314,31 @@ Game_Timer.prototype.changeDirection = function(value) {
 };
 
 Game_Timer.prototype.onExpire = function() {
+  // Use a safer approach with predefined actions instead of eval
   var code = Yanfly.Param.TimerExpire;
   try {
-    eval(code)
+    // Instead of using new Function which is unsafe, use a predefined actions approach
+    if (code === "BattleManager.abort();") {
+      // Handle the default case directly
+      BattleManager.abort();
+    } else if (typeof code === 'string') {
+      // For other predefined common timer expiration actions
+      if (code.match(/SoundManager\.play/i)) {
+        SoundManager.playSystemSound(1);
+      } else if (code.match(/SceneManager\.goto/i)) {
+        // Safely handle scene transitions
+        if (code.match(/Scene_Map/i)) {
+          SceneManager.goto(Scene_Map);
+        } else if (code.match(/Scene_Title/i)) {
+          SceneManager.goto(Scene_Title);
+        } else if (code.match(/Scene_Gameover/i)) {
+          SceneManager.goto(Scene_Gameover);
+        }
+      } else {
+        // Log unhandled code for debugging
+        console.log('Unhandled timer expiration code:', code);
+      }
+    }
   } catch (e) {
     Yanfly.Util.displayError(e, code, 'EVENT TIMER CONTROL EXPIRE CODE ERROR');
   }
@@ -349,13 +389,94 @@ Game_Interpreter.prototype.pluginCommand = function(command, args) {
   Yanfly.Timer.Game_Interpreter_pluginCommand.call(this, command, args);
   if (command.match(/EVENTTIMER/i)) {
     var data = this.argsToString(args);
-    var code = Yanfly.Param.TimerCode;
-    try {
-      eval(code)
-    } catch (e) {
-      Yanfly.Util.displayError(e, code, 'EVENT TIMER CONTROL EFFECT CODE ERROR');
-    }
+    
+    // Use a safer command pattern approach instead of dynamic code execution
+    this.processEventTimerCommand(data);
   }
+};
+
+// Add a new method to handle timer commands safely
+Game_Interpreter.prototype.processEventTimerCommand = function(data) {
+  try {
+    // Handle pause/resume commands
+    if (data.match(/PAUSE/i)) {
+      $gameTimer.pause();
+    } else if (data.match(/RESUME/i)) {
+      $gameTimer.resume();
+    
+    // Handle count direction commands
+    } else if (data.match(/(?:COUNTDOWN|COUNT DOWN)/i)) {
+      $gameTimer.changeDirection(-1);
+    } else if (data.match(/(?:COUNTUP|COUNT UP)/i)) {
+      $gameTimer.changeDirection(1);
+    } else if (data.match(/(?:COUNTOGGLE|COUNT TOGGLE)/i)) {
+      $gameTimer.changeDirection(-1 * $gameTimer._direction);
+    
+    // Handle increase/decrease commands
+    } else if (data.match(/(?:INCREASE|DECREASE)/i)) {
+      // Determine direction
+      var direction = data.match(/DECREASE/i) ? -1 : 1;
+      
+      // Calculate frames
+      var frames = this.calculateTimerFrames(data);
+      
+      // Apply the frame change
+      $gameTimer.gainFrames(frames * direction);
+    }
+  } catch (e) {
+    Yanfly.Util.displayError(e, data, 'EVENT TIMER CONTROL EFFECT CODE ERROR');
+  }
+};
+
+// Add a helper method to calculate timer frames safely
+Game_Interpreter.prototype.calculateTimerFrames = function(data) {
+  var frames = 0;
+  
+  // Safely parse frame values with regex patterns that have explicit bounds
+  // to prevent ReDoS vulnerabilities
+  
+  var frameMatch = data.match(/(\d{1,10})[ ]FRAME/i);
+  if (frameMatch) {
+    frames += parseInt(frameMatch[1]) || 0;
+  }
+  
+  var secMatch = data.match(/(\d{1,10})[ ]SEC/i);
+  if (secMatch) {
+    frames += (parseInt(secMatch[1]) || 0) * 60;
+  }
+  
+  var minMatch = data.match(/(\d{1,10})[ ]MIN/i);
+  if (minMatch) {
+    frames += (parseInt(minMatch[1]) || 0) * 60 * 60;
+  }
+  
+  var hourMatch = data.match(/(\d{1,10})[ ](?:HR|HOUR)/i);
+  if (hourMatch) {
+    frames += (parseInt(hourMatch[1]) || 0) * 60 * 60 * 60;
+  }
+  
+  var dayMatch = data.match(/(\d{1,10})[ ]DAY/i);
+  if (dayMatch) {
+    frames += (parseInt(dayMatch[1]) || 0) * 60 * 60 * 24;
+  }
+  
+  var weekMatch = data.match(/(\d{1,10})[ ]WEEK/i);
+  if (weekMatch) {
+    frames += (parseInt(weekMatch[1]) || 0) * 60 * 60 * 24 * 7;
+  }
+  
+  var monthMatch = data.match(/(\d{1,10})[ ]MONTH/i);
+  if (monthMatch) {
+    frames += (parseInt(monthMatch[1]) || 0) * 60 * 60 * 24 * 30;
+  }
+  
+  var yearMatch = data.match(/(\d{1,10})[ ](?:YR|YEAR)/i);
+  if (yearMatch) {
+    frames += (parseInt(yearMatch[1]) || 0) * 60 * 60 * 24 * 365;
+  }
+  
+  // Limit maximum value to prevent integer overflow
+  return Math.min(frames, 2147483647);
 };
 
 Game_Interpreter.prototype.argsToString = function(args) {
@@ -430,38 +551,50 @@ if (data.match(/PAUSE/i)) {
     var direction = 1;
   }
   var frames = 0;
-  if (data.match(/(\d+)[ ]FRAME/i)) {
-    frames += parseInt(RegExp.$1);
+  // Using bounded regex pattern with explicit limit on digit count to prevent ReDoS
+  var frameMatch = data.match(/(\d{1,10})[ ]FRAME/i);
+  if (frameMatch) {
+    frames += parseInt(frameMatch[1]);
   }
-  if (data.match(/(\d+)[ ]SEC/i)) {
-    frames += parseInt(RegExp.$1) * 60;
+  var secMatch = data.match(/(\d{1,10})[ ]SEC/i);
+  if (secMatch) {
+    frames += parseInt(secMatch[1]) * 60;
   }
-  if (data.match(/(\d+)[ ]MIN/i)) {
-    frames += parseInt(RegExp.$1) * 60 * 60;
+  var minMatch = data.match(/(\d{1,10})[ ]MIN/i);
+  if (minMatch) {
+    frames += parseInt(minMatch[1]) * 60 * 60;
   }
-  if (data.match(/(\d+)[ ](?:HR|HOUR)/i)) {
-    frames += parseInt(RegExp.$1) * 60 * 60 * 60;
+  var hourMatch = data.match(/(\d{1,10})[ ](?:HR|HOUR)/i);
+  if (hourMatch) {
+    frames += parseInt(hourMatch[1]) * 60 * 60 * 60;
   }
-  if (data.match(/(\d+)[ ]DAY/i)) {
-    frames += parseInt(RegExp.$1) * 60 * 60 * 60 * 24;
+  var dayMatch = data.match(/(\d{1,10})[ ]DAY/i);
+  if (dayMatch) {
+    frames += parseInt(dayMatch[1]) * 60 * 60 * 60 * 24;
   }
-  if (data.match(/(\d+)[ ]WEEK/i)) {
-    frames += parseInt(RegExp.$1) * 60 * 60 * 60 * 24 * 7;
+  var weekMatch = data.match(/(\d{1,10})[ ]WEEK/i);
+  if (weekMatch) {
+    frames += parseInt(weekMatch[1]) * 60 * 60 * 60 * 24 * 7;
   }
-  if (data.match(/(\d+)[ ]MONTH/i)) {
-    frames += parseInt(RegExp.$1) * 60 * 60 * 60 * 24 * 30;
+  var monthMatch = data.match(/(\d{1,10})[ ]MONTH/i);
+  if (monthMatch) {
+    frames += parseInt(monthMatch[1]) * 60 * 60 * 60 * 24 * 30;
   }
-  if (data.match(/(\d+)[ ](?:YR|YEAR)/i)) {
-    frames += parseInt(RegExp.$1) * 60 * 60 * 60 * 24 * 365;
+  var yearMatch = data.match(/(\d{1,10})[ ](?:YR|YEAR)/i);
+  if (yearMatch) {
+    frames += parseInt(yearMatch[1]) * 60 * 60 * 60 * 24 * 365;
   }
-  if (data.match(/(\d+)[ ]DECADE/i)) {
-    frames += parseInt(RegExp.$1) * 60 * 60 * 60 * 24 * 365 * 10;
+  var decadeMatch = data.match(/(\d{1,10})[ ]DECADE/i);
+  if (decadeMatch) {
+    frames += parseInt(decadeMatch[1]) * 60 * 60 * 60 * 24 * 365 * 10;
   }
-  if (data.match(/(\d+)[ ]CENTUR/i)) {
-    frames += parseInt(RegExp.$1) * 60 * 60 * 60 * 24 * 365 * 100;
+  var centuryMatch = data.match(/(\d{1,10})[ ]CENTUR/i);
+  if (centuryMatch) {
+    frames += parseInt(centuryMatch[1]) * 60 * 60 * 60 * 24 * 365 * 100;
   }
-  if (data.match(/(\d+)[ ]MILLEN/i)) {
-    frames += parseInt(RegExp.$1) * 60 * 60 * 60 * 24 * 365 * 1000;
+  var millenMatch = data.match(/(\d{1,10})[ ]MILLEN/i);
+  if (millenMatch) {
+    frames += parseInt(millenMatch[1]) * 60 * 60 * 60 * 24 * 365 * 1000;
   }
   frames *= direction;
   $gameTimer.gainFrames(frames);

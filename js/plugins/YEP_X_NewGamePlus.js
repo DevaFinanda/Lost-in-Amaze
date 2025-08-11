@@ -246,6 +246,13 @@ if (Imported.YEP_SaveCore) {
 Yanfly.Parameters = PluginManager.parameters('YEP_X_NewGamePlus');
 Yanfly.Param = Yanfly.Param || {};
 
+// Safe parser function to replace eval()
+Yanfly.NGP.parseBooleanParam = function(paramValue) {
+    if (paramValue === 'true') return true;
+    if (paramValue === 'false') return false;
+    return !!paramValue;
+};
+
 Yanfly.Param.NGPCmdText = String(Yanfly.Parameters['Command Text']);
 Yanfly.Param.NGPCmdHelp = String(Yanfly.Parameters['Command Help']);
 
@@ -255,11 +262,11 @@ Yanfly.NGP.ConvertArray = function(str) {
     var length = data.length;
     for (var i = 0; i < length; ++i) {
       var line = data[i].trim();
-      if (line.match(/(\d+)[ ](?:THROUGH|to)[ ](\d+)/i)) {
+      if (line.match(/^(\d+)[ ](?:THROUGH|to)[ ](\d+)$/i)) {
         var range = Yanfly.Util.getRange(parseInt(RegExp.$1),
           parseInt(RegExp.$2));
         result = result.concat(range);
-      } else if (line.match(/(\d+)/i)) {
+      } else if (line.match(/^(\d+)$/i)) {
         result.push(parseInt(RegExp.$1));
       }
     }
@@ -270,22 +277,22 @@ Yanfly.Param.NGPSwitches = String(Yanfly.Parameters['Carried Switches']);
 Yanfly.Param.NGPSwitches = Yanfly.NGP.ConvertArray(Yanfly.Param.NGPSwitches);
 Yanfly.Param.NGPVariables = String(Yanfly.Parameters['Carried Variables']);
 Yanfly.Param.NGPVariables = Yanfly.NGP.ConvertArray(Yanfly.Param.NGPVariables);
-Yanfly.Param.NGPPlaytime = eval(String(Yanfly.Parameters['Playtime']));
-Yanfly.Param.NGPSaveCnt = eval(String(Yanfly.Parameters['Save Count']));
-Yanfly.Param.NGPStepCnt = eval(String(Yanfly.Parameters['Step Count']));
-Yanfly.Param.NGPBattleCnt = eval(String(Yanfly.Parameters['Battle Count']));
-Yanfly.Param.NGPVictoryCnt = eval(String(Yanfly.Parameters['Victory Count']));
-Yanfly.Param.NGPEscapeCnt = eval(String(Yanfly.Parameters['Escape Count']));
+Yanfly.Param.NGPPlaytime = Yanfly.NGP.parseBooleanParam(String(Yanfly.Parameters['Playtime']));
+Yanfly.Param.NGPSaveCnt = Yanfly.NGP.parseBooleanParam(String(Yanfly.Parameters['Save Count']));
+Yanfly.Param.NGPStepCnt = Yanfly.NGP.parseBooleanParam(String(Yanfly.Parameters['Step Count']));
+Yanfly.Param.NGPBattleCnt = Yanfly.NGP.parseBooleanParam(String(Yanfly.Parameters['Battle Count']));
+Yanfly.Param.NGPVictoryCnt = Yanfly.NGP.parseBooleanParam(String(Yanfly.Parameters['Victory Count']));
+Yanfly.Param.NGPEscapeCnt = Yanfly.NGP.parseBooleanParam(String(Yanfly.Parameters['Escape Count']));
 
-Yanfly.Param.NGPActorWhole = eval(String(Yanfly.Parameters['Copy Actor']));
-Yanfly.Param.NGPActorExp = eval(String(Yanfly.Parameters['EXP']));
-Yanfly.Param.NGPActorJp = eval(String(Yanfly.Parameters['JP']));
-Yanfly.Param.NGPActorSkills = eval(String(Yanfly.Parameters['Skills']));
+Yanfly.Param.NGPActorWhole = Yanfly.NGP.parseBooleanParam(String(Yanfly.Parameters['Copy Actor']));
+Yanfly.Param.NGPActorExp = Yanfly.NGP.parseBooleanParam(String(Yanfly.Parameters['EXP']));
+Yanfly.Param.NGPActorJp = Yanfly.NGP.parseBooleanParam(String(Yanfly.Parameters['JP']));
+Yanfly.Param.NGPActorSkills = Yanfly.NGP.parseBooleanParam(String(Yanfly.Parameters['Skills']));
 
-Yanfly.Param.NGPPartyGold = eval(String(Yanfly.Parameters['Gold']));
-Yanfly.Param.NGPPartyItems = eval(String(Yanfly.Parameters['Items']));
-Yanfly.Param.NGPPartyWeapons = eval(String(Yanfly.Parameters['Weapons']));
-Yanfly.Param.NGPPartyArmors = eval(String(Yanfly.Parameters['Armors']));
+Yanfly.Param.NGPPartyGold = Yanfly.NGP.parseBooleanParam(String(Yanfly.Parameters['Gold']));
+Yanfly.Param.NGPPartyItems = Yanfly.NGP.parseBooleanParam(String(Yanfly.Parameters['Items']));
+Yanfly.Param.NGPPartyWeapons = Yanfly.NGP.parseBooleanParam(String(Yanfly.Parameters['Weapons']));
+Yanfly.Param.NGPPartyArmors = Yanfly.NGP.parseBooleanParam(String(Yanfly.Parameters['Armors']));
 
 //=============================================================================
 // DataManager

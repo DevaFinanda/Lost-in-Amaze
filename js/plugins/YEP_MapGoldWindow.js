@@ -96,7 +96,8 @@ Yanfly.MGW.version = 1.02
 Yanfly.Parameters = PluginManager.parameters('YEP_MapGoldWindow');
 Yanfly.Param = Yanfly.Param || {};
 
-Yanfly.Param.MGWAutomatic = eval(String(Yanfly.Parameters['Automatic Open']));
+// Safely convert 'Automatic Open' string to boolean without using eval
+Yanfly.Param.MGWAutomatic = String(Yanfly.Parameters['Automatic Open']).toLowerCase() === 'true';
 Yanfly.Param.MGWPosition = Number(Yanfly.Parameters['Default Position']);
 Yanfly.Param.MGWOpacity = Number(Yanfly.Parameters['Opacity']);
 

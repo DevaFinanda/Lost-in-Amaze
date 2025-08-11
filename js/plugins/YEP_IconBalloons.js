@@ -165,13 +165,13 @@ Game_Interpreter.prototype.canShowIconBalloons = function() {
 Game_Interpreter.prototype.processIconBalloons = function(str) {
   // Addition made by Eldaym
   str = str.replace('This Event', 'Event ' + this.eventId());
-  // Original
-  if (str.match(/(\d+)[ ]TO[ ](\d+)[ ](.*)/i)) {
+  // Original with security improvements to prevent ReDoS
+  if (str.match(/(\d{1,10})[ ]TO[ ](\d{1,10})[ ]([\s\S]{0,1000})/i)) {
     var iconIndex1 = parseInt(RegExp.$1);
     var iconIndex2 = parseInt(RegExp.$2);
     var str = String(RegExp.$3).trim();
     if (iconIndex1 > iconIndex2) return;
-  } else if (str.match(/(\d+)[ ](.*)/i)) {
+  } else if (str.match(/(\d{1,10})[ ]([\s\S]{0,1000})/i)) {
     var iconIndex1 = parseInt(RegExp.$1);
     var iconIndex2 = iconIndex1;
     var str = String(RegExp.$2).trim();

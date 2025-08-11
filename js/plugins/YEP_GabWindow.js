@@ -657,7 +657,8 @@ Window_Gab.prototype.startCountdown = function() {
     this._graphicLoading = false;
     this.contentsOpacity = 255;
     this._showCount = Yanfly.Param.GabBaseTime;
-    var text = this._text.replace(/\\(.*?)\[(.*?)\]/gi, '');
+    // Safer regex with explicit bounds to prevent catastrophic backtracking
+    var text = this._text.replace(/\\([^[\]{0,100})\[([^\]]{0,100})\]/gi, '');
     this._showCount += text.length * Yanfly.Param.GabTimePerChar;
 };
 

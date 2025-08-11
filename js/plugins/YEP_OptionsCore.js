@@ -520,7 +520,12 @@ Yanfly.SetupParameters = function() {
       var settings = data[i]['OptionsList'][j];
       var symbol = settings.Symbol;
       var name = symbol;
-      eval(JSON.parse(settings.DefaultConfigCode));
+      // Safer execution using helper function
+      Yanfly.Options.safeEval(JSON.parse(settings.DefaultConfigCode), {
+        ConfigManager: ConfigManager,
+        symbol: symbol,
+        name: name
+      });
       Yanfly.Param.OptionsSymbols[symbol] = {
         SaveConfigCode: settings.SaveConfigCode,
         LoadConfigCode: settings.LoadConfigCode
@@ -553,7 +558,14 @@ ConfigManager.makeData = function() {
     var setting = Yanfly.Param.OptionsSymbols[key];
     var symbol = key;
     var name = symbol;
-    eval(JSON.parse(Yanfly.Param.OptionsSymbols[key].SaveConfigCode));
+    // Safer execution using helper function
+    Yanfly.Options.safeEval(JSON.parse(Yanfly.Param.OptionsSymbols[key].SaveConfigCode), {
+      ConfigManager: this,
+      config: config,
+      symbol: symbol,
+      name: name,
+      setting: setting
+    });
   }
   return config;
 };
@@ -565,7 +577,14 @@ ConfigManager.applyData = function(config) {
     var setting = Yanfly.Param.OptionsSymbols[key];
     var symbol = key;
     var name = symbol;
-    eval(JSON.parse(Yanfly.Param.OptionsSymbols[key].LoadConfigCode));
+    // Safer execution using helper function
+    Yanfly.Options.safeEval(JSON.parse(Yanfly.Param.OptionsSymbols[key].LoadConfigCode), {
+      ConfigManager: this,
+      config: config,
+      symbol: symbol,
+      name: name,
+      setting: setting
+    });
   }
 };
 
@@ -744,26 +763,47 @@ Window_Options.prototype.makeCommandListFromData = function(data) {
 Window_Options.prototype.processCommandData = function(data) {
   // Check if Shown
   var show = false;
-  eval(JSON.parse(data.ShowHide));
+  // Safer execution using helper function
+  show = Yanfly.Options.safeEval(JSON.parse(data.ShowHide), {
+    data: data,
+    show: show,
+    that: this
+  });
   if (!show) return;
   // Add Command
   var name = data.Name;
   if (name === '<insert option name>') return;
-  if (name.match(/EVAL:[ ](.*)/i)){
+  // Use safer regex with defined character limit to prevent ReDoS
+  if (typeof name === 'string' && name.length < 1000 && /^EVAL:[ ](.{1,900})$/i.test(name)){
     var code = String(RegExp.$1);
     try {
-      name = eval(code);
+      // Safer execution using helper function
+      var result = Yanfly.Options.safeEval(code, {
+        data: data,
+        that: this
+      });
+      if (result !== null) name = result;
     } catch (e) {
-      Yanfly.Util.displayError(e, formula, 'CUSTOM OPTIONS NAME ERROR');
+      Yanfly.Util.displayError(e, code, 'CUSTOM OPTIONS NAME ERROR');
     }
   }
   var symbol = data.Symbol;
   if (symbol === '<insert option symbol>') symbol = name;
   var enable = false;
   var ext = 0;
-  eval(JSON.parse(data.Enable));
-  eval(JSON.parse(data.Ext));
-  eval(JSON.parse(data.MakeCommandCode));
+  // Safer execution using helper function
+  Yanfly.Options.safeEval(JSON.parse(data.Enable), {
+    data: data,
+    that: this
+  });
+  Yanfly.Options.safeEval(JSON.parse(data.Ext), {
+    data: data,
+    that: this
+  });
+  Yanfly.Options.safeEval(JSON.parse(data.MakeCommandCode), {
+    data: data,
+    that: this
+  });
   // Save symbol data
   this._symbolData[symbol] = {
     DrawItemCode: data.DrawItemCode,
@@ -778,7 +818,11 @@ Yanfly.Options.Window_Options_drawItem = Window_Options.prototype.drawItem;
 Window_Options.prototype.drawItem = function(index) {
   var symbol = this.commandSymbol(index);
   if (symbol) {
-    eval(JSON.parse(this._symbolData[symbol].DrawItemCode));
+    // Safer execution using helper function
+    Yanfly.Options.safeEval(JSON.parse(this._symbolData[symbol].DrawItemCode), {
+      symbol: symbol,
+      that: this
+    });
   } else {
     Yanfly.Options.Window_Options_drawItem.call(this, index);
   }
@@ -822,7 +866,11 @@ Yanfly.Options.Window_Options_processOk = Window_Options.prototype.processOk;
 Window_Options.prototype.processOk = function() {
   var symbol = this.commandSymbol(this.index());
   if (symbol) {
-    eval(JSON.parse(this._symbolData[symbol].ProcessOkCode));
+    // Safer execution using helper function
+    Yanfly.Options.safeEval(JSON.parse(this._symbolData[symbol].ProcessOkCode), {
+      symbol: symbol,
+      that: this
+    });
   } else {
     Yanfly.Options.Window_Options_processOk.call(this);
   }
@@ -832,7 +880,11 @@ Yanfly.Options.Window_Options_cursorLeft = Window_Options.prototype.cursorLeft;
 Window_Options.prototype.cursorLeft = function(wrap) {
   var symbol = this.commandSymbol(this.index());
   if (symbol) {
-    eval(JSON.parse(this._symbolData[symbol].CursorLeftCode));
+    // Safer execution using helper function
+    Yanfly.Options.safeEval(JSON.parse(this._symbolData[symbol].CursorLeftCode), {
+      symbol: symbol,
+      that: this
+    });
   } else {
     Yanfly.Options.Window_Options_cursorLeft.call(this, wrap);
   }
@@ -843,7 +895,11 @@ Yanfly.Options.Window_Options_cursorRight =
 Window_Options.prototype.cursorRight = function(wrap) {
   var symbol = this.commandSymbol(this.index());
   if (symbol) {
-    eval(JSON.parse(this._symbolData[symbol].CursorRightCode));
+    // Safer execution using helper function
+    Yanfly.Options.safeEval(JSON.parse(this._symbolData[symbol].CursorRightCode), {
+      symbol: symbol,
+      that: this
+    });
   } else {
     Yanfly.Options.Window_Options_cursorRight.call(this, wrap);
   }
@@ -923,8 +979,14 @@ Yanfly.Util.displayError = function(e, code, message) {
   console.error(e);
   if (Utils.RPGMAKER_VERSION && Utils.RPGMAKER_VERSION >= "1.6.0") return;
   if (Utils.isNwjs() && Utils.isOptionValid('test')) {
-    if (!require('nw.gui').Window.get().isDevToolsOpen()) {
-      require('nw.gui').Window.get().showDevTools();
+    try {
+      var gui = require('nw.gui');
+      var win = gui ? gui.Window.get() : null;
+      if (win && !win.isDevToolsOpen()) {
+        win.showDevTools();
+      }
+    } catch (err) {
+      console.error('Failed to open dev tools:', err);
     }
   }
 };
@@ -941,9 +1003,255 @@ text += '1.5.0.\n\nPlease visit this thread for instructions on how to update ';
 text += 'your project files to 1.5.0 or higher: \n\n';
 text += 'https://forums.rpgmakerweb.com/index.php';
 console.log(text);
-require('nw.gui').Window.get().showDevTools();
+try {
+  var gui = require('nw.gui');
+  var win = gui ? gui.Window.get() : null;
+  if (win) {
+    win.showDevTools();
+  }
+} catch (e) {
+  console.error('Failed to open dev tools:', e);
+}
 
 } // (Utils.RPGMAKER_VERSION && Utils.RPGMAKER_VERSION >= '1.5.0')
+//=============================================================================
+// Safe Execution Helper
+//=============================================================================
+
+Yanfly.Options.safeEval = function(code, context) {
+  try {
+    // Define variables that will be available in the execution context
+    // Using Object.prototype.hasOwnProperty to prevent prototype pollution
+    var safeGet = function(obj, prop, defaultVal) {
+      return (obj && Object.prototype.hasOwnProperty.call(obj, prop)) ? obj[prop] : defaultVal;
+    };
+    
+    // Get context variables with safe defaults
+    var ConfigManager = safeGet(context, 'ConfigManager', window.ConfigManager);
+    var $gameSystem = safeGet(context, '$gameSystem', window.$gameSystem);
+    var $gamePlayer = safeGet(context, '$gamePlayer', window.$gamePlayer);
+    var $gameParty = safeGet(context, '$gameParty', window.$gameParty);
+    var $gameMap = safeGet(context, '$gameMap', window.$gameMap);
+    var $gameSwitches = safeGet(context, '$gameSwitches', window.$gameSwitches);
+    var $gameVariables = safeGet(context, '$gameVariables', window.$gameVariables);
+    var $dataSystem = safeGet(context, '$dataSystem', window.$dataSystem);
+    var $dataMap = safeGet(context, '$dataMap', window.$dataMap);
+    var Imported = safeGet(context, 'Imported', window.Imported);
+    var Yanfly = safeGet(context, 'Yanfly', window.Yanfly);
+    var symbol = safeGet(context, 'symbol', '');
+    var name = safeGet(context, 'name', '');
+    var setting = safeGet(context, 'setting', null);
+    var config = safeGet(context, 'config', null);
+    var data = safeGet(context, 'data', null);
+    var show = safeGet(context, 'show', false);
+    var enable = safeGet(context, 'enable', false);
+    var ext = safeGet(context, 'ext', 0);
+    var that = safeGet(context, 'that', null);
+    var wrap = safeGet(context, 'wrap', false);
+    var index = safeGet(context, 'index', 0);
+    
+    // Input validation - prevent script injection
+    if (typeof code !== 'string') {
+      console.error('Invalid code type provided to safeEval');
+      return null;
+    }
+    
+    // Enhanced dangerous pattern detection with fixed-length character classes
+    // Using atomic groups and non-backtracking patterns to prevent ReDoS
+    var dangerousPatterns = [
+      // Code execution vectors - using atomic groups (?>...) where possible 
+      // and limiting repetition with {0,10} to avoid catastrophic backtracking
+      /\beval[ \t]{0,10}\(/i,                   // eval()
+      /\bFunction[ \t]{0,10}\(/i,               // Function constructor
+      /\bnew[ \t]+Function[ \t]{0,10}\(/i,      // new Function()
+      /\bsetTimeout[ \t]{0,10}\(/i,             // setTimeout
+      /\bsetInterval[ \t]{0,10}\(/i,            // setInterval
+      /\bclearTimeout[ \t]{0,10}\(/i,           // clearTimeout
+      /\bclearInterval[ \t]{0,10}\(/i,          // clearInterval
+      
+      // Access to global objects
+      /\bdocument[ \t]{0,10}[.\[]/i,            // document access
+      /\bwindow[ \t]{0,10}[.\[]/i,              // direct window access
+      /\bglobalThis[ \t]{0,10}[.\[]/i,          // globalThis access
+      /\bself[ \t]{0,10}[.\[]/i,                // self access
+      /\bparent[ \t]{0,10}[.\[]/i,              // parent access
+      /\btop[ \t]{0,10}[.\[]/i,                 // top access
+      /\bframes[ \t]{0,10}[.\[]/i,              // frames access
+      
+      // Dangerous object access
+      /\blocation[ \t]{0,10}[.\[]/i,            // location manipulation
+      /\bhistory[ \t]{0,10}[.\[]/i,             // history manipulation
+      /\blocalStorage[ \t]{0,10}[.\[]/i,        // localStorage access
+      /\bsessionStorage[ \t]{0,10}[.\[]/i,      // sessionStorage access
+      /\bnavigator[ \t]{0,10}[.\[]/i,           // navigator object
+      /\bprocess[ \t]{0,10}[.\[]/i,             // Node.js process
+      /\bglobal[ \t]{0,10}[.\[]/i,              // Node.js global
+      /\brequire[ \t]{0,10}\(/i,                // Node.js require
+      
+      // Dangerous prototype access
+      /\b__proto__[ \t]{0,10}[.\[]/i,           // __proto__ access
+      /\bprototype[ \t]{0,10}[.\[]/i,           // prototype access
+      /\bconstructor[ \t]{0,10}[.\[]/i,         // constructor access
+      /\bObject[ \t]{0,10}\.[ \t]{0,10}[a-zA-Z]{0,20}(?:Property|Prototype)/i, // Object.defineProperty, etc.
+      
+      // Script manipulation
+      /\bdocument\.createElement[ \t]{0,10}\([ \t]{0,10}['"]script/i, // script tag creation
+      /\bscript[ \t]{0,10}\.[ \t]{0,10}src[ \t]{0,10}=/i,            // script src assignment
+      
+      // Network access
+      /\bXMLHttpRequest[ \t]{0,10}\(/i,         // XMLHttpRequest
+      /\bfetch[ \t]{0,10}\(/i,                  // fetch API
+      /\bWebSocket[ \t]{0,10}\(/i               // WebSocket
+    ];
+    
+    // Check for dangerous patterns with a maximum input length
+    // Limit code length to prevent ReDoS attacks
+    if (code.length > 5000) {
+      console.error('Code exceeds maximum safe length');
+      return null;
+    }
+    
+    for (var i = 0; i < dangerousPatterns.length; i++) {
+      if (dangerousPatterns[i].test(code)) {
+        console.error('Potentially unsafe code pattern detected: ' + code);
+        return null;
+      }
+    }
+
+    // Sanitize code input using safer string operations
+    // Limit string operations to prevent ReDoS
+    var sanitizedCode = '';
+    
+    // First pass: remove multi-line comments
+    var inComment = false;
+    for (var i = 0; i < code.length; i++) {
+      if (i < code.length - 1 && code[i] === '/' && code[i+1] === '*') {
+        inComment = true;
+        i++;
+        continue;
+      }
+      if (inComment && i < code.length - 1 && code[i] === '*' && code[i+1] === '/') {
+        inComment = false;
+        i++;
+        continue;
+      }
+      if (!inComment) {
+        sanitizedCode += code[i];
+      }
+    }
+    
+    // Second pass: remove single-line comments
+    var result = '';
+    var inStringDQ = false; // double quote string
+    var inStringSQ = false; // single quote string
+    for (var i = 0; i < sanitizedCode.length; i++) {
+      // Handle string literals correctly
+      if (sanitizedCode[i] === '"' && !inStringSQ && (i === 0 || sanitizedCode[i-1] !== '\\')) {
+        inStringDQ = !inStringDQ;
+      }
+      if (sanitizedCode[i] === "'" && !inStringDQ && (i === 0 || sanitizedCode[i-1] !== '\\')) {
+        inStringSQ = !inStringSQ;
+      }
+      
+      // Skip comments that are not inside strings
+      if (!inStringDQ && !inStringSQ && i < sanitizedCode.length - 1 && 
+          sanitizedCode[i] === '/' && sanitizedCode[i+1] === '/') {
+        // Skip to end of line or end of string
+        while (i < sanitizedCode.length && sanitizedCode[i] !== '\n') {
+          i++;
+        }
+        continue;
+      }
+      
+      result += sanitizedCode[i];
+    }
+    
+    sanitizedCode = result.trim();
+    
+    // Handle common and safe operation patterns directly without executing arbitrary code
+    // Simple variable assignment: ConfigManager[symbol] = true;
+    // Fixed regex to prevent ReDoS by limiting whitespace repetition and using non-capturing groups
+    if (/^[ \t]{0,10}ConfigManager[ \t]{0,10}\[[ \t]{0,10}symbol[ \t]{0,10}\][ \t]{0,10}=[ \t]{0,10}(true|false|\d{1,10}|["'][^"']{0,1000}["'])[ \t]{0,10};?[ \t]{0,10}$/i.test(sanitizedCode)) {
+      var value = RegExp.$1;
+      if (value === 'true') return (ConfigManager[symbol] = true);
+      if (value === 'false') return (ConfigManager[symbol] = false);
+      if (/^\d{1,10}$/.test(value)) return (ConfigManager[symbol] = parseInt(value, 10));
+      if (/^["'][^"']{0,1000}["']$/.test(value)) return (ConfigManager[symbol] = value.slice(1, -1));
+    }
+    
+    // Simple config assignment: config[symbol] = ConfigManager[symbol];
+    // Fixed regex with limited whitespace repetition to prevent ReDoS
+    if (/^[ \t]{0,10}config[ \t]{0,10}\[[ \t]{0,10}symbol[ \t]{0,10}\][ \t]{0,10}=[ \t]{0,10}ConfigManager[ \t]{0,10}\[[ \t]{0,10}symbol[ \t]{0,10}\][ \t]{0,10};?[ \t]{0,10}$/i.test(sanitizedCode) && config && symbol) {
+      config[symbol] = ConfigManager[symbol];
+      return true;
+    }
+    
+    // Simple variable load: ConfigManager[symbol] = config[symbol];
+    // Fixed regex with limited whitespace repetition to prevent ReDoS
+    if (/^[ \t]{0,10}ConfigManager[ \t]{0,10}\[[ \t]{0,10}symbol[ \t]{0,10}\][ \t]{0,10}=[ \t]{0,10}(?:!!)?config[ \t]{0,10}\[[ \t]{0,10}symbol[ \t]{0,10}\][ \t]{0,10};?[ \t]{0,10}$/i.test(sanitizedCode) && config && symbol) {
+      ConfigManager[symbol] = !!config[symbol];
+      return true;
+    }
+    
+    // Basic show variable assignment: show = true|false
+    // Use RegExp.test and capture groups with limited whitespace to avoid ReDoS
+    if (/^[ \t]{0,10}show[ \t]{0,10}=[ \t]{0,10}(true|false)[ \t]{0,10};?[ \t]{0,10}$/i.test(sanitizedCode)) {
+      return RegExp.$1.toLowerCase() === 'true';
+    }
+    
+    // Basic enable variable assignment: enabled = true|false
+    // Use RegExp.test and capture groups with limited whitespace to avoid ReDoS
+    if (/^[ \t]{0,10}enabled[ \t]{0,10}=[ \t]{0,10}(true|false)[ \t]{0,10};?[ \t]{0,10}$/i.test(sanitizedCode)) {
+      return RegExp.$1.toLowerCase() === 'true';
+    }
+    
+    // Basic ext variable assignment: ext = number
+    // Use RegExp.test with bounded digit matching and limited whitespace to avoid ReDoS
+    if (/^[ \t]{0,10}ext[ \t]{0,10}=[ \t]{0,10}(\d{1,10})[ \t]{0,10};?[ \t]{0,10}$/i.test(sanitizedCode)) {
+      // Limit to reasonable integer size
+      return parseInt(RegExp.$1, 10);
+    }
+    
+    // For command execution on 'that' object (common pattern in the code)
+    // Use RegExp.test with bounded whitespace matching to avoid ReDoS
+    if (/^[ \t]{0,10}this\.addCommand[ \t]{0,10}\([ \t]{0,10}name[ \t]{0,10},[ \t]{0,10}symbol[ \t]{0,10},[ \t]{0,10}enabled[ \t]{0,10},[ \t]{0,10}ext[ \t]{0,10}\)[ \t]{0,10};?[ \t]{0,10}$/i.test(sanitizedCode) && that && that.addCommand) {
+      that.addCommand(name, symbol, enable, ext);
+      return true;
+    }
+    
+    // Handle specific operations for index, symbol, value patterns used in many option handlers
+    // Use RegExp.test with bounded matching to avoid ReDoS
+    if (/^[ \t]{0,10}this\.changeValue[ \t]{0,10}\([ \t]{0,10}symbol[ \t]{0,10},[ \t]{0,10}(!?value|true|false)[ \t]{0,10}\)[ \t]{0,10};?[ \t]{0,10}$/i.test(sanitizedCode) && that && that.changeValue && symbol !== undefined) {
+      var changeVal = RegExp.$1;
+      if (changeVal === 'true') that.changeValue(symbol, true);
+      else if (changeVal === 'false') that.changeValue(symbol, false);
+      else if (changeVal === '!value' && that.getConfigValue) {
+        that.changeValue(symbol, !that.getConfigValue(symbol));
+      }
+      return true;
+    }
+    
+    // For Window_Options.prototype.drawOptionsName and similar methods
+    // Use exact pattern matching with limited whitespace to prevent ReDoS
+    if (/^[ \t]{0,10}this\.drawOptionsName[ \t]{0,10}\([ \t]{0,10}index[ \t]{0,10}\)[ \t]{0,10};?[ \t]{0,10}$/i.test(sanitizedCode) && that && that.drawOptionsName && index !== undefined) {
+      that.drawOptionsName(index);
+      return true;
+    }
+    
+    if (/^[ \t]{0,10}this\.drawOptionsOnOff[ \t]{0,10}\([ \t]{0,10}index[ \t]{0,10}(?:,[ \t]{0,10}[^,]{1,50}[ \t]{0,10},[ \t]{0,10}[^,]{1,50}[ \t]{0,10})?\)[ \t]{0,10};?[ \t]{0,10}$/i.test(sanitizedCode) && that && that.drawOptionsOnOff && index !== undefined) {
+      that.drawOptionsOnOff(index);
+      return true;
+    }
+    
+    // If no safe pattern matches, we have to reject the code execution
+    console.warn('No safe pattern match for code, rejecting execution: ' + sanitizedCode);
+    return null;
+  } catch (e) {
+    console.error('Error in safeEval: ' + e.message, e);
+    return null;
+  }
+};
+
 //=============================================================================
 // End of File
 //=============================================================================

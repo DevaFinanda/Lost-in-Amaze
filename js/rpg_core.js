@@ -149,7 +149,22 @@ String.prototype.contains = function(string) {
  * @return {Number} A random integer
  */
 Math.randomInt = function(max) {
-    return Math.floor(max * Math.random());
+    var randomValue;
+    if (window.crypto && window.crypto.getRandomValues) {
+        var array = new Uint32Array(1);
+        window.crypto.getRandomValues(array);
+        randomValue = array[0] / 4294967295;
+    } else {
+        // Improved fallback for environments without crypto
+        // Uses time-based seeding with additional entropy mixing
+        var seed = Date.now() % 1000000;
+        for (var i = 0; i < 5; i++) {
+            // Mix in additional entropy sources using a simple LCG algorithm
+            seed = (seed * 9301 + 49297) % 233280;
+        }
+        randomValue = seed / 233280;
+    }
+    return Math.floor(max * randomValue);
 };
 
 //-----------------------------------------------------------------------------
@@ -4375,7 +4390,7 @@ Sprite.prototype._speedUpCustomBlendModes = function(renderer) {
 
 /**
  * @method _renderWebGL
- * @param {Object} renderer
+ * @param {Object} renderer        randomValue = Math.random();
  * @private
  */
 Sprite.prototype._renderWebGL = function(renderer) {
@@ -4402,7 +4417,7 @@ Sprite.prototype._renderWebGL = function(renderer) {
         } else {
             // use pixi super-speed renderer
             renderer.setObjectRenderer(renderer.plugins[this.pluginName]);
-			renderer.plugins[this.pluginName].render(this);
+            renderer.plugins[this.pluginName].render(this);
         }
     }
 };

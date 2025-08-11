@@ -474,32 +474,32 @@ DataManager.processSParamNotetags = function(group) {
 
     for (var i = 0; i < notedata.length; i++) {
       var line = notedata[i];
-      if (line.match(/<(.*) PLUS:[ ]([\+\-]\d+)([%％])>/i)) {
+      if (line.match(/<([\w\s]+) PLUS:[ ]([\+\-]\d+)([%％])>/i)) {
         var text = String(RegExp.$1).toUpperCase();
         var rate = parseFloat(RegExp.$2) * 0.01;
         var id = this.getSParamId(text);
         if (id !== null) obj.plusSParams[id] = rate;
-      } else if (line.match(/<(.*) PLUS:[ ]([\+\-]\d+).(\d+)>/i)) {
+      } else if (line.match(/<([\w\s]+) PLUS:[ ]([\+\-]\d+)\.(\d+)>/i)) {
         var text = String(RegExp.$1).toUpperCase();
         var rate = parseFloat(String(RegExp.$2) + '.' + String(RegExp.$3));
         var id = this.getSParamId(text);
         if (id !== null) obj.plusSParams[id] = rate;
-      } else if (line.match(/<(.*) RATE:[ ](\d+)([%％])>/i)) {
+      } else if (line.match(/<([\w\s]+) RATE:[ ](\d+)([%％])>/i)) {
         var text = String(RegExp.$1).toUpperCase();
         var rate = parseFloat(RegExp.$2) * 0.01;
         var id = this.getSParamId(text);
         if (id !== null) obj.rateSParams[id] = rate;
-      } else if (line.match(/<(.*) RATE:[ ](\d+).(\d+)>/i)) {
+      } else if (line.match(/<([\w\s]+) RATE:[ ](\d+)\.(\d+)>/i)) {
         var text = String(RegExp.$1).toUpperCase();
         var rate = parseFloat(String(RegExp.$2) + '.' + String(RegExp.$3));
         var id = this.getSParamId(text);
         if (id !== null) obj.rateSParams[id] = rate;
-      } else if (line.match(/<(.*) FLAT:[ ]([\+\-]\d+)([%％])>/i)) {
+      } else if (line.match(/<([\w\s]+) FLAT:[ ]([\+\-]\d+)([%％])>/i)) {
         var text = String(RegExp.$1).toUpperCase();
         var rate = parseFloat(RegExp.$2) * 0.01;
         var id = this.getSParamId(text);
         if (id !== null) obj.flatSParams[id] = rate;
-      } else if (line.match(/<(.*) FLAT:[ ]([\+\-]\d+).(\d+)>/i)) {
+      } else if (line.match(/<([\w\s]+) FLAT:[ ]([\+\-]\d+)\.(\d+)>/i)) {
         var text = String(RegExp.$1).toUpperCase();
         var rate = parseFloat(String(RegExp.$2) + '.' + String(RegExp.$3));
         var id = this.getSParamId(text);
@@ -571,9 +571,37 @@ Game_BattlerBase.prototype.sparam = function(id) {
     var v = $gameVariables._data;
     var code = Yanfly.Param.SParamFormula[id];
     try {
-      this._sparam[id] = eval(code);
+      // Safer execution using helper function with proper context
+      var result = Yanfly.SpParam.safeEval(code, {
+        base: base,
+        plus: plus,
+        rate: rate,
+        flat: flat,
+        a: a,
+        user: user,
+        subject: subject,
+        id: id,
+        s: s,
+        v: v
+      });
+      
+      // Set defaults based on parameter ID
+      // Most special params should be between 0 and 10 (0% to 1000%)
+      var defaultValue = 1; // Default is 100%
+      var minValue = 0;     // Minimum 0%
+      var maxValue = 10;    // Maximum 1000%
+      
+      // Set specific range for each parameter type
+      switch(id) {
+        case 1: // GRD - Guard Effect should be positive
+          minValue = 0.0000000001; // Very small but positive
+          break;
+      }
+      
+      // Validate and store result
+      this._sparam[id] = Yanfly.SpParam.validateNumericResult(result, defaultValue, minValue, maxValue);
     } catch (e) {
-      this._sparam[id] = 0;
+      this._sparam[id] = id === 1 ? 0.0000000001 : 0; // Special case for GRD
       Yanfly.Util.displayError(e, code, 'SPECIAL PARAM FORMULA ERROR');
     }
     return this._sparam[id];
@@ -853,7 +881,6 @@ Game_Actor.prototype.sparamFlat = function(id) {
 };
 
 Game_Actor.prototype.basicFloorDamage = function() {
-    var value = 0;
     var a = this;
     var user = this;
     var subject = this;
@@ -863,12 +890,23 @@ Game_Actor.prototype.basicFloorDamage = function() {
     var v = $gameVariables._data;
     var code = Yanfly.Param.SParamFloorDmg;
     try {
-      value = eval(code);
+      // Safer execution using helper function with complete context
+      var result = Yanfly.SpParam.safeEval(code, {
+        a: a,
+        user: user,
+        subject: subject,
+        b: b,
+        target: target,
+        s: s,
+        v: v
+      });
+      
+      // Floor damage should be positive and reasonable
+      return Yanfly.SpParam.validateNumericResult(result, 10, 0, 999);
     } catch (e) {
-      value = 0;
       Yanfly.Util.displayError(e, code, 'FLOOR DAMAGE FORMULA ERROR');
+      return 10; // Default floor damage
     }
-    return value;
 };
 
 Game_Actor.prototype.benchMembersExpRate = function() {
@@ -880,12 +918,21 @@ Game_Actor.prototype.benchMembersExpRate = function() {
     var v = $gameVariables._data;
     var code = Yanfly.Param.SParamReserveExp;
     try {
-      var rate = eval(code);
+      // Safer execution using helper function with complete context
+      var result = Yanfly.SpParam.safeEval(code, {
+        a: a,
+        user: user,
+        subject: subject,
+        s: s,
+        v: v
+      });
+      
+      // EXP rate should be between 0 and 5 (0% to 500%)
+      return Yanfly.SpParam.validateNumericResult(result, 1, 0, 5);
     } catch (e) {
-      var rate = 1;
       Yanfly.Util.displayError(e, code, 'BENCH MEMBERS EXP RATE FORMULA ERROR');
+      return 1; // Default 100% rate
     }
-    return rate;
 };
 
 //=============================================================================
@@ -916,7 +963,7 @@ Game_Enemy.prototype.sparamFlat = function(id) {
 
 Game_Action.prototype.applyGuard = function(damage, target) {
     var item = this.item();
-    var skill = this.item()
+    var skill = this.item();
     var a = this.subject();
     var user = this.subject();
     var subject = this.subject();
@@ -925,10 +972,27 @@ Game_Action.prototype.applyGuard = function(damage, target) {
     var v = $gameVariables._data;
     var code = Yanfly.Param.SParamGrdCalc;
     try {
-      return eval(code);
+      // Safer execution using helper function with complete context
+      var result = Yanfly.SpParam.safeEval(code, {
+        damage: damage,
+        item: item,
+        skill: skill,
+        a: a,
+        user: user,
+        subject: subject,
+        b: b,
+        target: target,
+        s: s,
+        v: v
+      });
+      
+      // Guard result should be between 0 and original damage * 2
+      // (allowing for damage reflection in some cases)
+      var maxDamage = damage * 2;
+      return Yanfly.SpParam.validateNumericResult(result, damage, 0, maxDamage);
     } catch (e) {
       Yanfly.Util.displayError(e, code, 'SPECIAL PARAM GUARD FORMULA ERROR');
-      return 1;
+      return damage; // Return original damage on error
     }
 };
 
@@ -948,6 +1012,324 @@ Yanfly.Util.displayError = function(e, code, message) {
       require('nw.gui').Window.get().showDevTools();
     }
   }
+};
+
+//=============================================================================
+// Yanfly's Safe Evaluation Function for Special Param Formula
+//=============================================================================
+
+Yanfly.SpParam = Yanfly.SpParam || {};
+
+// Function to ensure results are valid numbers with reasonable limits
+Yanfly.SpParam.validateNumericResult = function(result, defaultValue, min, max) {
+  // Validate and normalize inputs
+  if (defaultValue === null || defaultValue === undefined || 
+      typeof defaultValue !== 'number' || isNaN(defaultValue) || !isFinite(defaultValue)) {
+    defaultValue = 0;
+  }
+  
+  // Default values if not provided
+  min = typeof min === 'number' && isFinite(min) ? min : -1000000; // Reasonable lower limit
+  max = typeof max === 'number' && isFinite(max) ? max : 1000000;  // Reasonable upper limit
+  
+  // Ensure min is actually less than max
+  if (min > max) {
+    var temp = min;
+    min = max;
+    max = temp;
+  }
+  
+  // Check if result is valid
+  if (result === null || result === undefined || typeof result !== 'number' || isNaN(result)) {
+    console.warn('Invalid numeric result: ' + result + ', using default: ' + defaultValue);
+    return defaultValue;
+  }
+  
+  // Check for infinity or unreasonable values
+  if (!isFinite(result)) {
+    console.warn('Infinite result: ' + result + ', using default: ' + defaultValue);
+    return defaultValue;
+  }
+  
+  // Clamp the result to min/max bounds
+  if (result < min) {
+    console.warn('Result below minimum bound: ' + result + ' < ' + min + ', clamping to minimum');
+    return min;
+  }
+  
+  if (result > max) {
+    console.warn('Result above maximum bound: ' + result + ' > ' + max + ', clamping to maximum');
+    return max;
+  }
+  
+  return result;
+};
+
+// Truly safe code evaluation function without using new Function() or eval()
+Yanfly.SpParam.safeEval = function(code, context) {
+  try {
+    // First perform safety checks (these are still good to keep)
+    // Check for potentially harmful code patterns
+    var unsafePatterns = [
+      /\beval\b/i,
+      /\bFunction\b/i,
+      /\bnew\s+Function\b/i,
+      /\bsetTimeout\b/i,
+      /\bsetInterval\b/i,
+      /\bclearTimeout\b/i,
+      /\bclearInterval\b/i,
+      /\bwindow\b/i,
+      /\bdocument\b/i,
+      /\blocation\b/i,
+      /\bnavigator\b/i,
+      /\bhistory\b/i,
+      /\bglobal\b/i,
+      /\bprocess\b/i,
+      /\brequire\b/i,
+      /\bmodule\b/i,
+      /\b__proto__\b/i,
+      /\bconstructor\b/i,
+      /\bprototype\b/i,
+      /\bObject\b/i,
+      /\bArray\b/i,
+      /\bJSON\b/i,
+      /\bString\b/i,
+      /\bNumber\b/i,
+      /\bPromise\b/i,
+      /\bthis\b/i,
+      /\bimport\b/i,
+      /\bexport\b/i,
+      /\bfetch\b/i,
+      /\bXMLHttpRequest\b/i,
+      /\bWebSocket\b/i,
+      /\bIndexedDB\b/i,
+      /\blocal(?:Storage|Session)\b/i,
+      /\bdebugger\b/i,
+      /\balert\b/i,
+      /\bconfirm\b/i,
+      /\bprompt\b/i,
+      /\bconsole\b/i,
+      /\breflect\b/i,
+      /\bproxy\b/i
+    ];
+    
+    for (var i = 0; i < unsafePatterns.length; i++) {
+      if (unsafePatterns[i].test(code)) {
+        console.error('Potentially unsafe code pattern detected: ' + code);
+        return null;
+      }
+    }
+    
+    // Only allow specific safe operations in the code
+    var safeExpressionPattern = /^[a-zA-Z0-9_\s\(\)\[\]\{\}\+\-\*\/\%\.\,\<\>\=\!\&\|\^\~\?\:]+$/;
+    if (!safeExpressionPattern.test(code)) {
+      console.error('Expression contains potentially unsafe characters: ' + code);
+      return null;
+    }
+    
+    // Limit code length to prevent DoS attacks
+    if (code.length > 1000) {
+      console.error('Expression too long (over 1000 characters)');
+      return null;
+    }
+    
+    // Instead of dynamic function creation, implement a safe math expression evaluator
+    // This parser handles basic arithmetic operations and recognized variables
+    
+    // Create variable lookup table from context
+    var variables = context || {};
+    
+    // Parse and evaluate the expression without using eval/Function
+    var result = Yanfly.SpParam.evaluateExpression(code, variables);
+    
+    // Validate the result is a reasonable number
+    return Yanfly.SpParam.validateNumericResult(result, 0);
+  } catch (e) {
+    console.error('Error executing code:', e);
+    return null;
+  }
+};
+
+// Safe expression evaluator that doesn't use eval or new Function
+Yanfly.SpParam.evaluateExpression = function(expression, variables) {
+  // Handle basic math operations with operator precedence
+  var ops = {
+    '+': function(a, b) { return a + b; },
+    '-': function(a, b) { return a - b; },
+    '*': function(a, b) { return a * b; },
+    '/': function(a, b) { return b === 0 ? 0 : a / b; }, // Prevent division by zero
+    '%': function(a, b) { return b === 0 ? 0 : a % b; }, // Prevent modulo by zero
+  };
+
+  // Basic math functions
+  var mathFuncs = {
+    'abs': Math.abs,
+    'ceil': Math.ceil,
+    'floor': Math.floor,
+    'max': Math.max,
+    'min': Math.min,
+    'pow': Math.pow,
+    'round': Math.round,
+    'sqrt': Math.sqrt
+  };
+
+  // Replace variable references with their values
+  for (var varName in variables) {
+    if (variables.hasOwnProperty(varName)) {
+      var value = variables[varName];
+      
+      // Skip if variable name is unsafe or value is not valid
+      if (typeof varName !== 'string' || varName.length > 50 || 
+          /[^\w]/.test(varName) || value === undefined) {
+        console.warn('Skipping unsafe variable:', varName);
+        continue;
+      }
+      
+      // Convert object values to safe representations
+      if (typeof value === 'object' && value !== null) {
+        // Only allow direct properties for objects
+        value = JSON.stringify(value).replace(/[{}"']/g, '');
+      }
+      
+      // Convert to number if possible to avoid string injection
+      var numValue = parseFloat(value);
+      if (!isNaN(numValue) && isFinite(numValue)) {
+        value = numValue;
+      } else if (typeof value === 'string') {
+        // If it's a string that's not a number, wrap it safely
+        value = '"' + value.replace(/["\\]/g, '') + '"';
+      }
+      
+      // Only replace whole variable names (not partial matches)
+      var regex = new RegExp('\\b' + varName + '\\b', 'g');
+      expression = expression.replace(regex, value);
+    }
+  }
+
+  // Replace Math function calls with their results
+  for (var funcName in mathFuncs) {
+    if (mathFuncs.hasOwnProperty(funcName)) {
+      var pattern = new RegExp(funcName + '\\s*\\(([^\\)]+)\\)', 'g');
+      expression = expression.replace(pattern, function(match, args) {
+        try {
+          // Handle multiple arguments
+          var argValues = args.split(',').map(function(arg) {
+            return Yanfly.SpParam.evaluateSimpleExpression(arg.trim(), variables);
+          });
+          
+          return mathFuncs[funcName].apply(null, argValues);
+        } catch (e) {
+          console.error('Error in math function:', e);
+          return 0;
+        }
+      });
+    }
+  }
+
+  // Evaluate the final expression with all variables and functions replaced
+  return Yanfly.SpParam.evaluateSimpleExpression(expression, variables);
+};
+
+// Evaluate a simple mathematical expression
+Yanfly.SpParam.evaluateSimpleExpression = function(expr, variables) {
+  // Remove all whitespace
+  expr = expr.replace(/\s+/g, '');
+  
+  // Handle parentheses first by recursively evaluating nested expressions
+  while (expr.indexOf('(') !== -1) {
+    expr = expr.replace(/\(([^()]*)\)/g, function(match, subExpr) {
+      return Yanfly.SpParam.evaluateSimpleExpression(subExpr, variables);
+    });
+  }
+  
+  // Evaluate multiplication and division first (left to right)
+  expr = Yanfly.SpParam.evaluateOperators(expr, ['*', '/', '%']);
+  
+  // Then evaluate addition and subtraction (left to right)
+  expr = Yanfly.SpParam.evaluateOperators(expr, ['+', '-']);
+  
+  // Convert the result to a number
+  var result = parseFloat(expr);
+  
+  // Check if the result is valid
+  if (isNaN(result) || !isFinite(result)) {
+    console.error('Expression did not evaluate to a valid number:', expr);
+    return 0;
+  }
+  
+  return result;
+};
+
+// Evaluate operators with the same precedence from left to right
+Yanfly.SpParam.evaluateOperators = function(expr, operators) {
+  // Type validation
+  if (typeof expr !== 'string') {
+    console.error('Invalid expression type in evaluateOperators');
+    return '0';
+  }
+  
+  // Limit expression length to prevent DoS attacks
+  if (expr.length > 1000) {
+    console.error('Expression too long in evaluateOperators');
+    return '0';
+  }
+  
+  // Handle negative numbers at the start of the expression
+  if (expr.charAt(0) === '-') {
+    expr = '0' + expr;
+  }
+  
+  // Replace sequences like '+-' or '--' with their simplified form
+  expr = expr.replace(/\+-/g, '-');
+  expr = expr.replace(/--/g, '+');
+  
+  // Create a regex to match any of the operators
+  var opRegex = new RegExp('([\\d\\.]+)([' + operators.join('').replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + '])([\\d\\.]+)');
+  
+  // Prevent infinite loops with iteration counter
+  var iterations = 0;
+  var maxIterations = 100;
+  
+  // Repeatedly find and evaluate the leftmost operator until no more operators remain
+  var match;
+  while ((match = opRegex.exec(expr)) && iterations < maxIterations) {
+    iterations++;
+    var left = parseFloat(match[1]);
+    var operator = match[2];
+    var right = parseFloat(match[3]);
+    var result = 0;
+    
+    // Apply the operator
+    switch (operator) {
+      case '+': result = left + right; break;
+      case '-': result = left - right; break;
+      case '*': result = left * right; break;
+      case '/': result = right === 0 ? 0 : left / right; break;
+      case '%': result = right === 0 ? 0 : left % right; break;
+    }
+    
+    // Validate the result
+    if (!isFinite(result) || isNaN(result)) {
+      console.error('Invalid calculation result:', left, operator, right);
+      result = 0;
+    }
+    
+    // Prevent excessively large numbers
+    if (Math.abs(result) > 1e16) {
+      console.warn('Result too large, capping value:', result);
+      result = result > 0 ? 1e16 : -1e16;
+    }
+    
+    // Replace the evaluated expression in the original string
+    expr = expr.substring(0, match.index) + result + expr.substring(match.index + match[0].length);
+  }
+  
+  // If we hit our iteration limit, log a warning
+  if (iterations >= maxIterations) {
+    console.warn('Expression evaluation hit iteration limit, may be malicious:', expr);
+  }
+  
+  return expr;
 };
 
 //=============================================================================

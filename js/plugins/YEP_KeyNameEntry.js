@@ -64,7 +64,8 @@ Yanfly.Parameters = PluginManager.parameters('YEP_KeyNameEntry');
 Yanfly.Param = Yanfly.Param || {};
 
 Yanfly.Param.KNEMsg = JSON.parse(Yanfly.Parameters['KeyboardMsg']).split('\n');
-Yanfly.Param.KNEQwerty = eval(Yanfly.Parameters['QWERTY Layout']);
+// Convert string to boolean safely without using eval
+Yanfly.Param.KNEQwerty = String(Yanfly.Parameters['QWERTY Layout']).toLowerCase() === 'true';
 
 if (Yanfly.Param.KNEQwerty) {
   Window_NameInput.LATIN1 =

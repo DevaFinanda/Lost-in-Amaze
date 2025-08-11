@@ -415,6 +415,13 @@ if (Imported.YEP_ClassChangeCore) {
 Yanfly.Parameters = PluginManager.parameters('YEP_X_Subclass');
 Yanfly.Param = Yanfly.Param || {};
 
+// Safe parser function to replace eval()
+Yanfly.Subclass.parseBooleanParam = function(paramValue) {
+    if (paramValue === 'true') return true;
+    if (paramValue === 'false') return false;
+    return !!paramValue;
+};
+
 Yanfly.Param.SubclassCmd = String(Yanfly.Parameters['Subclass Command']);
 Yanfly.Param.SubclassShowCmd = String(Yanfly.Parameters['Show Command']);
 Yanfly.Param.SubclassEnableCmd = String(Yanfly.Parameters['Enable Command']);
@@ -433,19 +440,19 @@ Yanfly.Subclass.Param[7] = Number(Yanfly.Parameters['LUK']);
 Yanfly.Param.SubclassExp = Number(Yanfly.Parameters['EXP']);
 Yanfly.Param.SubclassJp = Number(Yanfly.Parameters['JP']);
 
-Yanfly.Param.SubclassSType = eval(String(Yanfly.Parameters['Skill Types']));
-Yanfly.Param.SubParamRates = eval(String(Yanfly.Parameters['Param Rates']));
-Yanfly.Param.SubXParamVal = eval(String(Yanfly.Parameters['X-Param Values']));
-Yanfly.Param.SubSParamRates = eval(String(Yanfly.Parameters['S-Param Rates']));
-Yanfly.Param.SubSEleRates = eval(String(Yanfly.Parameters['Element Rates']));
-Yanfly.Param.SubDebuffRates = eval(String(Yanfly.Parameters['Debuff Rates']));
-Yanfly.Param.SubStateRates = eval(String(Yanfly.Parameters['Debuff Rates']));
-Yanfly.Param.SubStateRes = eval(String(Yanfly.Parameters['State Resist']));
-Yanfly.Param.SubAttackEle = eval(String(Yanfly.Parameters['Attack Element']));
-Yanfly.Param.SubAttackState = eval(String(Yanfly.Parameters['Attack State']));
-Yanfly.Param.SubAddedSkills = eval(String(Yanfly.Parameters['Added Skills']));
-Yanfly.Param.SubclassWeapons = eval(String(Yanfly.Parameters['Weapons']));
-Yanfly.Param.SubclassArmors = eval(String(Yanfly.Parameters['Armors']));
+Yanfly.Param.SubclassSType = Yanfly.Subclass.parseBooleanParam(String(Yanfly.Parameters['Skill Types']));
+Yanfly.Param.SubParamRates = Yanfly.Subclass.parseBooleanParam(String(Yanfly.Parameters['Param Rates']));
+Yanfly.Param.SubXParamVal = Yanfly.Subclass.parseBooleanParam(String(Yanfly.Parameters['X-Param Values']));
+Yanfly.Param.SubSParamRates = Yanfly.Subclass.parseBooleanParam(String(Yanfly.Parameters['S-Param Rates']));
+Yanfly.Param.SubSEleRates = Yanfly.Subclass.parseBooleanParam(String(Yanfly.Parameters['Element Rates']));
+Yanfly.Param.SubDebuffRates = Yanfly.Subclass.parseBooleanParam(String(Yanfly.Parameters['Debuff Rates']));
+Yanfly.Param.SubStateRates = Yanfly.Subclass.parseBooleanParam(String(Yanfly.Parameters['Debuff Rates']));
+Yanfly.Param.SubStateRes = Yanfly.Subclass.parseBooleanParam(String(Yanfly.Parameters['State Resist']));
+Yanfly.Param.SubAttackEle = Yanfly.Subclass.parseBooleanParam(String(Yanfly.Parameters['Attack Element']));
+Yanfly.Param.SubAttackState = Yanfly.Subclass.parseBooleanParam(String(Yanfly.Parameters['Attack State']));
+Yanfly.Param.SubAddedSkills = Yanfly.Subclass.parseBooleanParam(String(Yanfly.Parameters['Added Skills']));
+Yanfly.Param.SubclassWeapons = Yanfly.Subclass.parseBooleanParam(String(Yanfly.Parameters['Weapons']));
+Yanfly.Param.SubclassArmors = Yanfly.Subclass.parseBooleanParam(String(Yanfly.Parameters['Armors']));
 
 //=============================================================================
 // DataManager
@@ -505,8 +512,8 @@ DataManager.processSubclassNotetags1 = function(group) {
 };
 
 DataManager.processSubclassNotetags2 = function(group) {
-  var note1a = /<(?:SUBCLASS)[ ](\d+)[ ](?:COMBO NAME):[ ](.*)>/i;
-  var note1b = /<(.*)[ ](?:COMBO NAME):[ ](.*)>/i;
+  var note1a = /<(?:SUBCLASS)[ ](\d+)[ ](?:COMBO NAME):[ ]([^>]*)>/i;
+  var note1b = /<([\w\s]+)[ ](?:COMBO NAME):[ ]([^>]*)>/i;
   for (var n = 1; n < group.length; n++) {
     var obj = group[n];
     var notedata = obj.note.split(/[\r\n]+/);
@@ -581,8 +588,8 @@ Game_System.prototype.initialize = function() {
 };
 
 Game_System.prototype.initSubclasses = function() {
-    this._showSubclass = eval(Yanfly.Param.SubclassShowCmd);
-    this._enableSubclass = eval(Yanfly.Param.SubclassEnableCmd);
+    this._showSubclass = Yanfly.Subclass.parseBooleanParam(Yanfly.Param.SubclassShowCmd);
+    this._enableSubclass = Yanfly.Subclass.parseBooleanParam(Yanfly.Param.SubclassEnableCmd);
 };
 
 Game_System.prototype.isShowSubclass = function() {

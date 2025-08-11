@@ -4572,20 +4572,14 @@ Yanfly.MMM.Ext = {};
 Yanfly.MMM.MainBind = {};
 Yanfly.MMM.ActorBind = {};
 for (Yanfly.i = 1; Yanfly.i <= 100; ++Yanfly.i) {
-  Yanfly.line = "String(Yanfly.Parameters['Menu " + Yanfly.i + " Name'])";
-  Yanfly.MMM.Name[Yanfly.i] = eval(Yanfly.line);
-  Yanfly.line = "String(Yanfly.Parameters['Menu " + Yanfly.i + " Symbol'])";
-  Yanfly.MMM.Symbol[Yanfly.i] = eval(Yanfly.line);
-  Yanfly.line = "String(Yanfly.Parameters['Menu " + Yanfly.i + " Show'])";
-  Yanfly.MMM.Show[Yanfly.i] = eval(Yanfly.line);
-  Yanfly.line = "String(Yanfly.Parameters['Menu " + Yanfly.i + " Enabled'])";
-  Yanfly.MMM.Enabled[Yanfly.i] = eval(Yanfly.line);
-  Yanfly.line = "String(Yanfly.Parameters['Menu " + Yanfly.i + " Ext'])";
-  Yanfly.MMM.Ext[Yanfly.i] = eval(Yanfly.line);
-  Yanfly.line = "String(Yanfly.Parameters['Menu " + Yanfly.i + " Main Bind'])";
-  Yanfly.MMM.MainBind[Yanfly.i] = eval(Yanfly.line);
-  Yanfly.line = "String(Yanfly.Parameters['Menu " + Yanfly.i + " Actor Bind'])";
-  Yanfly.MMM.ActorBind[Yanfly.i] = eval(Yanfly.line);
+  // Safely get parameter values without using eval
+  Yanfly.MMM.Name[Yanfly.i] = String(Yanfly.Parameters['Menu ' + Yanfly.i + ' Name']);
+  Yanfly.MMM.Symbol[Yanfly.i] = String(Yanfly.Parameters['Menu ' + Yanfly.i + ' Symbol']);
+  Yanfly.MMM.Show[Yanfly.i] = String(Yanfly.Parameters['Menu ' + Yanfly.i + ' Show']);
+  Yanfly.MMM.Enabled[Yanfly.i] = String(Yanfly.Parameters['Menu ' + Yanfly.i + ' Enabled']);
+  Yanfly.MMM.Ext[Yanfly.i] = String(Yanfly.Parameters['Menu ' + Yanfly.i + ' Ext']);
+  Yanfly.MMM.MainBind[Yanfly.i] = String(Yanfly.Parameters['Menu ' + Yanfly.i + ' Main Bind']);
+  Yanfly.MMM.ActorBind[Yanfly.i] = String(Yanfly.Parameters['Menu ' + Yanfly.i + ' Actor Bind']);
 };
 
 //=============================================================================
@@ -4594,7 +4588,9 @@ for (Yanfly.i = 1; Yanfly.i <= 100; ++Yanfly.i) {
 
 Yanfly.MMM.SceneManager_snapForBackground = SceneManager.snapForBackground;
 SceneManager.snapForBackground = function() {
-    if (eval(Yanfly.Param.MMMBlurryBG)) {
+    // Safely convert string to boolean without using eval
+    var useBlurry = String(Yanfly.Param.MMMBlurryBG).toLowerCase() === 'true';
+    if (useBlurry) {
       Yanfly.MMM.SceneManager_snapForBackground.call(this);
     } else {
       this._backgroundBitmap = this.snap();
@@ -4632,15 +4628,43 @@ Window_MenuCommand.prototype.addGameEndCommand = function() {
 Window_MenuCommand.prototype.createCommand = function(i) {
     var show = Yanfly.MMM.Show[i];
     if (show === '') return;
-    if (!eval(show)) return;
+    // Use safer string evaluation instead of Function constructor
+    var showValue = false;
+    try {
+      showValue = this.safeEvaluateBooleanCondition(show);
+    } catch (e) {
+      console.error('Error evaluating Show condition:', e);
+    }
+    if (!showValue) return;
+    
     var name = Yanfly.MMM.Name[i];
     if (name === '') return;
-    name = eval(name);
+    // Use safer string evaluation for name
+    try {
+      name = this.safeEvaluateMenuText(name);
+    } catch (e) {
+      console.error('Error evaluating Name:', e);
+    }
+    
     var symbol = Yanfly.MMM.Symbol[i];
     if (symbol === '') return;
-    var enabled = eval(Yanfly.MMM.Enabled[i]);
+    
+    // Safely evaluate enabled condition without dynamic code execution
+    var enabled = true;
+    try {
+      enabled = this.safeEvaluateBooleanCondition(Yanfly.MMM.Enabled[i]);
+    } catch (e) {
+      console.error('Error evaluating Enabled condition:', e);
+    }
     if (enabled === '') enabled = true;
-    var ext = eval(Yanfly.MMM.Ext[i]);
+    
+    // Safely evaluate ext value without dynamic code execution
+    var ext = null;
+    try {
+      ext = this.safeEvaluateCommandExtension(Yanfly.MMM.Ext[i]);
+    } catch (e) {
+      console.error('Error evaluating Ext value:', e);
+    }
     this.addCommand(name, symbol, enabled, ext);
     this.addSymbolBridge(symbol);
 };
@@ -4659,15 +4683,33 @@ Window_MenuCommand.prototype.itemTextAlign = function() {
 };
 
 Window_MenuCommand.prototype.windowWidth = function() {
-    return eval(Yanfly.Param.MMMCmdWidth);
+    // Safely evaluate command width without dynamic code execution
+    try {
+        return this.safeEvaluateNumericProperty(Yanfly.Param.MMMCmdWidth, 240);
+    } catch (e) {
+        console.error('Error evaluating command width:', e);
+        return 240; // Default fallback
+    }
 };
 
 Window_MenuCommand.prototype.maxCols = function() {
-    return eval(Yanfly.Param.MMMCmdCols);
+    // Safely evaluate command columns without dynamic code execution
+    try {
+        return this.safeEvaluateNumericProperty(Yanfly.Param.MMMCmdCols, 1);
+    } catch (e) {
+        console.error('Error evaluating command columns:', e);
+        return 1; // Default fallback
+    }
 };
 
 Window_MenuCommand.prototype.numVisibleRows = function() {
-    return eval(Yanfly.Param.MMMCmdRows);
+    // Safely evaluate command rows without dynamic code execution
+    try {
+        return this.safeEvaluateNumericProperty(Yanfly.Param.MMMCmdRows, 5);
+    } catch (e) {
+        console.error('Error evaluating command rows:', e);
+        return 5; // Default fallback
+    }
 };
 
 //=============================================================================
@@ -4706,14 +4748,28 @@ Yanfly.MMM.Scene_Menu_createGoldWindow =
     Scene_Menu.prototype.createGoldWindow;
 Scene_Menu.prototype.createGoldWindow = function() {
     Yanfly.MMM.Scene_Menu_createGoldWindow.call(this);
-    if (eval(Yanfly.Param.MMMHideGoldWin)) this._goldWindow.hide();
+    // Safely convert string to boolean without dynamic code execution
+    var hideGoldWin = false;
+    try {
+      hideGoldWin = this.safeEvaluateBooleanCondition(Yanfly.Param.MMMHideGoldWin);
+    } catch (e) {
+      console.error('Error evaluating HideGoldWin condition:', e);
+    }
+    if (hideGoldWin) this._goldWindow.hide();
 };
 
 Yanfly.MMM.Scene_Menu_createStatusWindow =
     Scene_Menu.prototype.createStatusWindow;
 Scene_Menu.prototype.createStatusWindow = function() {
     Yanfly.MMM.Scene_Menu_createStatusWindow.call(this);
-    if (eval(Yanfly.Param.MMMHideActorWin)) this._statusWindow.hide();
+    // Safely convert string to boolean without dynamic code execution
+    var hideActorWin = false;
+    try {
+      hideActorWin = this.safeEvaluateBooleanCondition(Yanfly.Param.MMMHideActorWin);
+    } catch (e) {
+      console.error('Error evaluating HideActorWin condition:', e);
+    }
+    if (hideActorWin) this._statusWindow.hide();
 };
 
 Scene_Menu.prototype.createCommandWindowBinds = function() {
@@ -4723,7 +4779,17 @@ Scene_Menu.prototype.createCommandWindowBinds = function() {
     if (symbol === '') continue;
     var bind = Yanfly.MMM.MainBind[i];
     if (bind === '') continue;
-    eval("this._commandWindow.setHandler('" + symbol + "', " + bind + ")");
+    // Safely set handler without dynamic code execution
+    try {
+      // Map predefined handler names to functions
+      var handlerFunction = this.safeGetCommandHandler(bind, symbol);
+      if (handlerFunction) {
+        // Set the handler for the command
+        this._commandWindow.setHandler(symbol, handlerFunction);
+      }
+    } catch (e) {
+      console.error('Error setting handler for symbol ' + symbol + ':', e);
+    }
     var actorBind = Yanfly.MMM.ActorBind[i];
     if (actorBind === '') continue;
     this._actorBinds[symbol] = actorBind;
@@ -4759,13 +4825,81 @@ Scene_Menu.prototype.onPersonalOk = function() {
     var symbol = this._commandWindow.currentSymbol();
     var actorBind = this._actorBinds[symbol];
     if (!actorBind) return;
-    eval(actorBind);
+    
+    // Safely handle common actor bind patterns without dynamic code execution
+    try {
+        // Handle common patterns safely
+        if (actorBind === 'SceneManager.push(Scene_Load)') {
+            SceneManager.push(Scene_Load);
+        } else if (actorBind === 'SceneManager.push(Scene_Item)') {
+            SceneManager.push(Scene_Item);
+        } else if (actorBind === 'SceneManager.push(Scene_Skill)') {
+            SceneManager.push(Scene_Skill);
+        } else if (actorBind === 'SceneManager.push(Scene_Equip)') {
+            SceneManager.push(Scene_Equip);
+        } else if (actorBind === 'SceneManager.push(Scene_Status)') {
+            SceneManager.push(Scene_Status);
+        } else if (actorBind === 'SceneManager.push(Scene_Options)') {
+            SceneManager.push(Scene_Options);
+        } else if (actorBind === 'SceneManager.push(Scene_Save)') {
+            SceneManager.push(Scene_Save);
+        } else if (actorBind === 'SceneManager.push(Scene_GameEnd)') {
+            SceneManager.push(Scene_GameEnd);
+        } else if (actorBind === 'this.commandFormation()') {
+            this.commandFormation();
+        } else if (actorBind.match(/^this\.callCommonEvent\(\)/)) {
+            this.callCommonEvent();
+        } else if (actorBind.match(/^SceneManager\.push\(Scene_/)) {
+            // For other SceneManager.push calls, extract the scene name safely
+            var sceneMatch = actorBind.match(/^SceneManager\.push\(Scene_(\w+)\)$/);
+            if (sceneMatch && window['Scene_' + sceneMatch[1]]) {
+                var sceneName = 'Scene_' + sceneMatch[1];
+                SceneManager.push(window[sceneName]);
+            } else {
+                console.error('Unsupported scene push command: ' + actorBind);
+            }
+        } else {
+            console.error('Unsupported actorBind command: ' + actorBind);
+        }
+    } catch (e) {
+        console.error('Error handling actorBind for symbol ' + symbol + ':', e);
+    }
 };
 
 Yanfly.MMM.Scene_Menu_onPersonalCancel = Scene_Menu.prototype.onPersonalCancel;
 Scene_Menu.prototype.onPersonalCancel = function() {
     Yanfly.MMM.Scene_Menu_onPersonalCancel.call(this);
-    if (eval(Yanfly.Param.MMMHideActorWin)) this._statusWindow.hide();
+    // Safely convert string to boolean without using eval
+    var hideActorWin = false;
+    try {
+      // Safe parsing of boolean values from string
+      var paramValue = String(Yanfly.Param.MMMHideActorWin).trim().toLowerCase();
+      hideActorWin = (paramValue === 'true' || paramValue === '1' || paramValue === 'yes');
+      
+      // Support for some simple expressions
+      if (paramValue === 'false' || paramValue === '0' || paramValue === 'no') {
+        hideActorWin = false;
+      } else if (paramValue.startsWith('$gameSwitches.value(') && paramValue.endsWith(')')) {
+        // Handle game switch references like $gameSwitches.value(10)
+        var switchId = parseInt(paramValue.substring(19, paramValue.length - 1), 10);
+        if (!isNaN(switchId) && switchId > 0) {
+          hideActorWin = $gameSwitches.value(switchId);
+        }
+      } else if (paramValue.startsWith('$gameVariables.value(') && paramValue.endsWith(') === 1')) {
+        // Handle variable checks like $gameVariables.value(10) === 1
+        var varMatch = paramValue.match(/^\$gameVariables\.value\((\d+)\)\s*===\s*(\d+)$/);
+        if (varMatch) {
+          var varId = parseInt(varMatch[1], 10);
+          var checkValue = parseInt(varMatch[2], 10);
+          if (!isNaN(varId) && varId > 0 && !isNaN(checkValue)) {
+            hideActorWin = ($gameVariables.value(varId) === checkValue);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error parsing HideActorWin condition:', e);
+    }
+    if (hideActorWin) this._statusWindow.hide();
 };
 
 Scene_Menu.prototype.callCommonEvent = function() {
@@ -4776,6 +4910,237 @@ Scene_Menu.prototype.callCommonEvent = function() {
 
 Scene_Menu.prototype.commandDebug = function() {
     SceneManager.push(Scene_Debug);
+};
+
+//=============================================================================
+// Safe Evaluation Helper Functions
+//=============================================================================
+
+// Helper function to safely evaluate boolean conditions without using eval or new Function
+Window_MenuCommand.prototype.safeEvaluateBooleanCondition = function(condition) {
+  if (!condition) return false;
+  condition = String(condition).trim();
+  
+  // Handle direct boolean values
+  if (condition === 'true') return true;
+  if (condition === 'false') return false;
+  
+  // Handle numeric values
+  if (condition === '0') return false;
+  if (condition === '1') return true;
+  if (!isNaN(Number(condition))) return Number(condition) !== 0;
+  
+  // Handle $gameSwitches references
+  var switchMatch = condition.match(/\$gameSwitches\.value\((\d+)\)/);
+  if (switchMatch && $gameSwitches) {
+    var switchId = parseInt(switchMatch[1], 10);
+    if (!isNaN(switchId) && switchId > 0) {
+      return $gameSwitches.value(switchId);
+    }
+  }
+  
+  // Handle $gameVariables references
+  var varCheckMatch = condition.match(/\$gameVariables\.value\((\d+)\)\s*([=!><]=?)\s*(\d+)/);
+  if (varCheckMatch && $gameVariables) {
+    var varId = parseInt(varCheckMatch[1], 10);
+    var operator = varCheckMatch[2];
+    var checkValue = parseInt(varCheckMatch[3], 10);
+    
+    if (!isNaN(varId) && varId > 0 && !isNaN(checkValue)) {
+      var value = $gameVariables.value(varId);
+      switch (operator) {
+        case '===':
+        case '==': return value === checkValue;
+        case '!==':
+        case '!=': return value !== checkValue;
+        case '>': return value > checkValue;
+        case '>=': return value >= checkValue;
+        case '<': return value < checkValue;
+        case '<=': return value <= checkValue;
+      }
+    }
+  }
+  
+  // Default to false for safety
+  console.warn('Unsupported condition format, defaulting to false:', condition);
+  return false;
+};
+
+// Extend to Scene_Menu prototype as well
+Scene_Menu.prototype.safeEvaluateBooleanCondition = 
+    Window_MenuCommand.prototype.safeEvaluateBooleanCondition;
+
+// Helper function to safely evaluate menu text without using eval or new Function
+Window_MenuCommand.prototype.safeEvaluateMenuText = function(textExpression) {
+  if (!textExpression) return '';
+  textExpression = String(textExpression).trim();
+  
+  // For string literals, return as is but strip quotes
+  if ((textExpression.startsWith('"') && textExpression.endsWith('"')) ||
+      (textExpression.startsWith("'") && textExpression.endsWith("'"))) {
+    return textExpression.substring(1, textExpression.length - 1);
+  }
+  
+  // Handle item/skill/actor names
+  var dataMatch;
+  
+  // Handle $dataItems references
+  dataMatch = textExpression.match(/\$dataItems\[(\d+)\]\.name/);
+  if (dataMatch && $dataItems) {
+    var itemId = parseInt(dataMatch[1], 10);
+    if (!isNaN(itemId) && itemId > 0 && $dataItems[itemId]) {
+      return $dataItems[itemId].name;
+    }
+  }
+  
+  // Handle $dataSkills references
+  dataMatch = textExpression.match(/\$dataSkills\[(\d+)\]\.name/);
+  if (dataMatch && $dataSkills) {
+    var skillId = parseInt(dataMatch[1], 10);
+    if (!isNaN(skillId) && skillId > 0 && $dataSkills[skillId]) {
+      return $dataSkills[skillId].name;
+    }
+  }
+  
+  // Handle $dataActors references
+  dataMatch = textExpression.match(/\$dataActors\[(\d+)\]\.name/);
+  if (dataMatch && $dataActors) {
+    var actorId = parseInt(dataMatch[1], 10);
+    if (!isNaN(actorId) && actorId > 0 && $dataActors[actorId]) {
+      return $dataActors[actorId].name;
+    }
+  }
+  
+  // Handle Text Manager references
+  if (textExpression === 'TextManager.item') return TextManager.item;
+  if (textExpression === 'TextManager.skill') return TextManager.skill;
+  if (textExpression === 'TextManager.equip') return TextManager.equip;
+  if (textExpression === 'TextManager.status') return TextManager.status;
+  if (textExpression === 'TextManager.formation') return TextManager.formation;
+  if (textExpression === 'TextManager.save') return TextManager.save;
+  if (textExpression === 'TextManager.gameEnd') return TextManager.gameEnd;
+  if (textExpression === 'TextManager.options') return TextManager.options;
+  
+  // For simple literals, try to return as is
+  if (!textExpression.includes('$') && !textExpression.includes('(')) {
+    return textExpression;
+  }
+  
+  // For unsupported formats, return a safe default
+  console.warn('Unsupported text expression format:', textExpression);
+  return textExpression; // Return as is for now
+};
+
+// Helper function to safely evaluate numeric values
+Window_MenuCommand.prototype.safeEvaluateNumericProperty = function(expression, defaultValue) {
+  if (!expression) return defaultValue;
+  expression = String(expression).trim();
+  
+  // For simple numbers, parse directly
+  if (!isNaN(Number(expression))) {
+    return Number(expression);
+  }
+  
+  // For Graphics properties
+  if (expression === 'Graphics.boxWidth') return Graphics.boxWidth;
+  if (expression === 'Graphics.boxHeight') return Graphics.boxHeight;
+  if (expression === 'Graphics.width') return Graphics.width;
+  if (expression === 'Graphics.height') return Graphics.height;
+  
+  // For math expressions, handle common operations
+  if (expression.includes('*')) {
+    var parts = expression.split('*');
+    if (parts.length === 2 && !isNaN(Number(parts[0].trim())) && !isNaN(Number(parts[1].trim()))) {
+      return Number(parts[0].trim()) * Number(parts[1].trim());
+    }
+    
+    // Handle special case for half width
+    if (expression === 'Graphics.boxWidth / 2') {
+      return Math.floor(Graphics.boxWidth / 2);
+    }
+    if (expression === 'Graphics.boxHeight / 2') {
+      return Math.floor(Graphics.boxHeight / 2);
+    }
+  }
+  
+  // If no matching pattern, return default
+  console.warn('Unsupported numeric expression format:', expression);
+  return defaultValue;
+};
+
+// Extend to other prototypes that need it
+Scene_Menu.prototype.safeEvaluateNumericProperty = 
+    Window_MenuCommand.prototype.safeEvaluateNumericProperty;
+
+// Helper function to safely evaluate command extensions
+Window_MenuCommand.prototype.safeEvaluateCommandExtension = function(expression) {
+  if (!expression) return null;
+  expression = String(expression).trim();
+  
+  // For simple numbers (common event IDs), parse directly
+  if (!isNaN(Number(expression))) {
+    return Number(expression);
+  }
+  
+  // For string literals, return as is but strip quotes
+  if ((expression.startsWith('"') && expression.endsWith('"')) ||
+      (expression.startsWith("'") && expression.endsWith("'"))) {
+    return expression.substring(1, expression.length - 1);
+  }
+  
+  // For null/undefined literals
+  if (expression === 'null' || expression === 'undefined') {
+    return null;
+  }
+  
+  // Handle $gameSwitches references
+  var switchMatch = expression.match(/\$gameSwitches\.value\((\d+)\)/);
+  if (switchMatch && $gameSwitches) {
+    var switchId = parseInt(switchMatch[1], 10);
+    if (!isNaN(switchId) && switchId > 0) {
+      return $gameSwitches.value(switchId);
+    }
+  }
+  
+  // For unsupported formats, return null
+  console.warn('Unsupported extension expression format:', expression);
+  return null;
+};
+
+// Helper function to map handler names to actual functions
+Scene_Menu.prototype.safeGetCommandHandler = function(handlerName, symbol) {
+  if (!handlerName) return null;
+  
+  // Common command handlers
+  if (handlerName === 'this.commandItem.bind(this)') {
+    return this.commandItem.bind(this);
+  } else if (handlerName === 'this.commandSkill.bind(this)') {
+    return this.commandSkill.bind(this);
+  } else if (handlerName === 'this.commandEquip.bind(this)') {
+    return this.commandEquip.bind(this);
+  } else if (handlerName === 'this.commandStatus.bind(this)') {
+    return this.commandStatus.bind(this);
+  } else if (handlerName === 'this.commandFormation.bind(this)') {
+    return this.commandFormation.bind(this);
+  } else if (handlerName === 'this.commandOptions.bind(this)') {
+    return this.commandOptions.bind(this);
+  } else if (handlerName === 'this.commandSave.bind(this)') {
+    return this.commandSave.bind(this);
+  } else if (handlerName === 'this.commandGameEnd.bind(this)') {
+    return this.commandGameEnd.bind(this);
+  } else if (handlerName === 'this.commandPersonal.bind(this)') {
+    return this.commandPersonal.bind(this);
+  } else if (handlerName === 'this.commandDebug.bind(this)') {
+    return this.commandDebug.bind(this);
+  } else if (handlerName === 'this.popScene.bind(this)') {
+    return this.popScene.bind(this);
+  } else if (handlerName.match(/this\.callCommonEvent\.bind\(this\)/)) {
+    return this.callCommonEvent.bind(this);
+  }
+  
+  // For unsupported handlers, log warning and return null
+  console.warn('Unsupported handler name:', handlerName, 'for symbol:', symbol);
+  return null;
 };
 
 //=============================================================================

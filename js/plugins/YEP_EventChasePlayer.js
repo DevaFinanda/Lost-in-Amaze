@@ -163,14 +163,35 @@ Yanfly.ECP.version = 1.07;
 Yanfly.Parameters = PluginManager.parameters('YEP_EventChasePlayer');
 Yanfly.Param = Yanfly.Param || {};
 
+// Safe boolean parsing function to avoid eval
+Yanfly.parseBooleanParam = function(param) {
+    // Convert to lower case string for consistent checking
+    param = String(param).toLowerCase();
+    
+    // Check for true/false strings
+    if (param === 'true') return true;
+    if (param === 'false') return false;
+    
+    // Check for yes/no strings
+    if (param === 'yes') return true;
+    if (param === 'no') return false;
+    
+    // Check for numeric values
+    var num = Number(param);
+    if (!isNaN(num)) return num !== 0;
+    
+    // Default fallback
+    return false;
+};
+
 Yanfly.Param.ECPSightLock = Number(Yanfly.Parameters['Sight Lock']);
 Yanfly.Param.ECPSeePlayer = String(Yanfly.Parameters['See Player']);
-Yanfly.Param.ECPSeePlayer = eval(Yanfly.Param.ECPSeePlayer);
+Yanfly.Param.ECPSeePlayer = Yanfly.parseBooleanParam(Yanfly.Param.ECPSeePlayer);
 Yanfly.Param.ECPAlertTimer = Number(Yanfly.Parameters['Alert Timer']);
 Yanfly.Param.ECPAlertBalloon = Number(Yanfly.Parameters['Alert Balloon']);
 Yanfly.Param.ECPAlertSound = String(Yanfly.Parameters['Alert Sound']);
 Yanfly.Param.ECPAlertEvent = Number(Yanfly.Parameters['Alert Common Event']);
-Yanfly.Param.ECPReturn = eval(String(Yanfly.Parameters['Return After']));
+Yanfly.Param.ECPReturn = Yanfly.parseBooleanParam(String(Yanfly.Parameters['Return After']));
 Yanfly.Param.ECPReturnWait = Number(Yanfly.Parameters['Return Wait']);
 
 //=============================================================================

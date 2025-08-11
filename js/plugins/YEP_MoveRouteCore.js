@@ -642,25 +642,151 @@ Game_Character.prototype.checkCollisionKeywords = function(line) {
   }
 };
 
-Game_Character.prototype.processMoveRouteEval = function(code) {
+// Safe code execution helper for move routes
+Game_Character.prototype.safeEvaluateExpression = function(code, returnMode) {
+  // Whitelist of allowed operations and methods
+  var allowedMethods = [
+    // Math methods
+    'abs', 'ceil', 'floor', 'max', 'min', 'pow', 'round', 'sqrt',
+    // Game state access
+    'x', 'y', 'direction', 'moveSpeed', 'moveFrequency', 'opacity', 
+    'isMoving', 'isStopping', 'screenX', 'screenY', 'scrolledX', 'scrolledY',
+    // Game_Player properties that are safe to access
+    'isTransferring', 'isMapPassable', 'characterName', 'characterIndex'
+  ];
+  
+  // Make sure the code doesn't contain dangerous patterns
+  var dangerousPatterns = [
+    /\beval\b/, /\bFunction\b/, /\bnew\s+Function\b/,
+    /\bglobalThis\b/, /\bwindow\b/, /\bdocument\b/, /\blocalStorage\b/,
+    /\brequire\b/, /\bmodule\b/, /\bprocess\b/, /\b__dirname\b/,
+    /\bimport\b/, /\bexport\b/, /\bconstructor\b/,
+    /\bsetTimeout\b/, /\bsetInterval\b/, /\bclearTimeout\b/, /\bclearInterval\b/,
+    /\balert\b/, /\bprompt\b/, /\bconfirm\b/
+  ];
+  
+  // Check for dangerous patterns
+  for (var i = 0; i < dangerousPatterns.length; i++) {
+    if (dangerousPatterns[i].test(code)) {
+      console.error("Potentially unsafe code detected:", code);
+      return returnMode ? 0 : null;
+    }
+  }
+  
   var a = this;
   var b = this;
   var player = $gamePlayer;
   var s = $gameSwitches._data;
   var v = $gameVariables._data;
+  
   try {
-    eval(code);
+    // Limited evaluation of simple arithmetic, comparisons and variable access
+    // For returnMode=true, we'll evaluate expressions like "v[1] + 5"
+    // For returnMode=false, we'll execute commands like this.jump(2, 0)
+    
+    // Handle common safe operations directly
+    if (returnMode) {
+      // Basic variable access
+      if (/^\s*v\[\d+\]\s*$/.test(code)) {
+        var match = code.match(/v\[(\d+)\]/);
+        if (match) return v[parseInt(match[1])];
+      }
+      
+      // Basic arithmetic on variables
+      if (/^\s*v\[\d+\]\s*[\+\-\*\/]\s*\d+\s*$/.test(code)) {
+        var match = code.match(/v\[(\d+)\]\s*([\+\-\*\/])\s*(\d+)/);
+        if (match) {
+          var varValue = v[parseInt(match[1])];
+          var operator = match[2];
+          var value = parseInt(match[3]);
+          
+          switch (operator) {
+            case '+': return varValue + value;
+            case '-': return varValue - value;
+            case '*': return varValue * value;
+            case '/': return varValue / value;
+          }
+        }
+      }
+      
+      // Return a numeric value
+      if (/^\s*\d+\s*$/.test(code)) {
+        return parseInt(code);
+      }
+      
+      // For switch state
+      if (/^\s*s\[\d+\]\s*$/.test(code)) {
+        var match = code.match(/s\[(\d+)\]/);
+        if (match) return s[parseInt(match[1])] ? 1 : 0;
+      }
+      
+      // Just return 0 for anything else we can't safely evaluate
+      console.log("Could not safely evaluate expression: " + code);
+      return 0;
+    } else {
+      // For command execution, only allow specific safe method calls
+      if (code.match(/^this\.(jump|moveTo|moveRandom|turnToward|turnAway|requestAnimation|requestBalloon)/)) {
+        // Execute only whitelisted method calls
+        if (code.startsWith("this.jump(") || 
+            code.startsWith("this.moveTo(") ||
+            code.startsWith("this.moveRandom(") ||
+            code.startsWith("this.turnToward(") ||
+            code.startsWith("this.turnAway(") ||
+            code.startsWith("this.requestAnimation(") ||
+            code.startsWith("this.requestBalloon(")) {
+          
+          // Execute the code using direct method calls instead
+          var methodMatch = code.match(/this\.([a-zA-Z0-9_]+)\((.*)\)/);
+          if (methodMatch) {
+            var method = methodMatch[1];
+            var paramsStr = methodMatch[2];
+            var params = [];
+            
+            // Simple parameter parsing (handles numbers and variables)
+            if (paramsStr.trim()) {
+              params = paramsStr.split(',').map(function(param) {
+                param = param.trim();
+                if (/^\d+$/.test(param)) return parseInt(param);
+                if (param === 'true') return true;
+                if (param === 'false') return false;
+                if (param.startsWith('v[') && param.endsWith(']')) {
+                  var vIndex = param.substring(2, param.length - 1);
+                  return v[parseInt(vIndex)];
+                }
+                if (param.startsWith('s[') && param.endsWith(']')) {
+                  var sIndex = param.substring(2, param.length - 1);
+                  return s[parseInt(sIndex)];
+                }
+                return param;
+              });
+            }
+            
+            // Execute the method if it exists and is in whitelist
+            if (typeof this[method] === 'function' && allowedMethods.includes(method)) {
+              this[method].apply(this, params);
+            }
+          }
+        }
+      }
+    }
   } catch (e) {
-    Yanfly.Util.displayError(e, code, 'MOVE ROUTE SCRIPT ERROR');
+    Yanfly.Util.displayError(e, code, returnMode ? 
+      'MOVE ROUTE SELF VARIABLE EXPRESSION ERROR' : 'MOVE ROUTE SCRIPT ERROR');
   }
+  
+  return returnMode ? 0 : null;
+};
+
+Game_Character.prototype.processMoveRouteEval = function(code) {
+  this.safeEvaluateExpression(code, false);
 };
 
 Game_Character.prototype.processMoveRouteIconBalloon = function(str) {
   if (!Yanfly.IBalloon) return;
-  if (str.match(/(\d+)[ ]TO[ ](\d+)/i)) {
+  if (str.match(/(\d{1,10})[ ]TO[ ](\d{1,10})/i)) {
     var iconIndex1 = parseInt(RegExp.$1);
     var iconIndex2 = parseInt(RegExp.$2);
-  } else if (str.match(/(\d+)/i)) {
+  } else if (str.match(/^(\d{1,10})$/i)) {
     var iconIndex1 = parseInt(RegExp.$1);
     var iconIndex2 = iconIndex1;
   } else {
@@ -691,7 +817,7 @@ Game_Character.prototype.processMoveRouteBalloon = function(str) {
     id = 9;
   } else if (str.match(/(?:ZZZ|ZZ|Z)/i)) {
     id = 10;
-  } else if (str.match(/(?:USER|USER-DEFINED|USER DEFINED)[ ](\d+)/i)) {
+  } else if (str.match(/(?:USER|USER-DEFINED|USER DEFINED)[ ](\d{1,10})/i)) {
     id = 10 + parseInt(RegExp.$1);
   }
   this.requestBalloon(id);
@@ -699,7 +825,7 @@ Game_Character.prototype.processMoveRouteBalloon = function(str) {
 
 Game_Character.prototype.processMoveRouteSelfSwitch = function(str, setting) {
   if (this === $gamePlayer) return;
-  if (Imported.YEP_SelfSwVar && str.match(/(\d+)/i)) {
+  if (Imported.YEP_SelfSwVar && str.match(/(\d{1,10})/i)) {
     var keyName = 'SELF SWITCH ' + parseInt(RegExp.$1);
   } else {
     var keyName = str.toUpperCase();
@@ -717,18 +843,16 @@ Game_Character.prototype.processMoveRouteSelfSwitch = function(str, setting) {
 Game_Character.prototype.processMoveRouteSelfVariable = function(str, code) {
   if (!Imported.YEP_SelfSwVar) return;
   if (this === $gamePlayer) return;
-  if (str.match(/(\d+)/i)) {
+  if (str.match(/(\d{1,10})/i)) {
     var keyName = 'SELF VARIABLE ' + parseInt(RegExp.$1);
   } else {
     var keyName = str.toUpperCase();
   }
   var key = [$gameMap.mapId(), this.eventId(), keyName];
-  try {
-    var value = eval(code);
-  } catch (e) {
-    var value = 0;
-    Yanfly.Util.displayError(e, code, 'MOVE ROUTE SELF VARIABLE SCRIPT ERROR');
-  }
+  
+  // Use our safe evaluation function with returnMode=true to get a value
+  var value = this.safeEvaluateExpression(code, true);
+  
   $gameSelfSwitches.setValue(key, value);
 };
 

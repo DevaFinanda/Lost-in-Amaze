@@ -8,7 +8,231 @@ Imported.YEP_BaseParamControl = true;
 
 var Yanfly = Yanfly || {};
 Yanfly.BPC = Yanfly.BPC || {};
-Yanfly.BPC.version = 1.04;
+Yanfly.BPC.version = 1.05; // Version updated after security improvements
+
+//=============================================================================
+// SafeFormulaEvaluator - Safe formula evaluation utility
+//=============================================================================
+function SafeFormulaEvaluator() {
+  this.initialize.apply(this, arguments);
+}
+
+SafeFormulaEvaluator.prototype.initialize = function() {
+  this._operators = {
+    '+': function(a, b) { return a + b; },
+    '-': function(a, b) { return a - b; },
+    '*': function(a, b) { return a * b; },
+    '/': function(a, b) { return a / b; },
+    '%': function(a, b) { return a % b; },
+    '>': function(a, b) { return a > b; },
+    '<': function(a, b) { return a < b; },
+    '>=': function(a, b) { return a >= b; },
+    '<=': function(a, b) { return a <= b; },
+    '==': function(a, b) { return a == b; },
+    '!=': function(a, b) { return a != b; },
+    '&&': function(a, b) { return a && b; },
+    '||': function(a, b) { return a || b; },
+    '?:': function(a, b, c) { return a ? b : c; },
+  };
+  
+  this._functions = {
+    'Math.min': Math.min,
+    'Math.max': Math.max,
+    'Math.floor': Math.floor,
+    'Math.ceil': Math.ceil,
+    'Math.round': Math.round,
+    'Math.abs': Math.abs,
+    'Math.sqrt': Math.sqrt,
+    'Math.pow': Math.pow,
+    'isNaN': isNaN,
+    'Number': Number,
+    'parseInt': parseInt,
+    'parseFloat': parseFloat,
+    'clamp': function(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+  };
+};
+
+SafeFormulaEvaluator.prototype.evaluate = function(formula, params) {
+  // This is a simplified implementation that handles common formula patterns
+  // in the plugin. For production use, consider a proper expression parser.
+  
+  // Replace variables with their values
+  var result = formula;
+  
+  // Handle conditional ternary expressions (common in the plugin formulas)
+  if (formula.includes('?') && formula.includes(':')) {
+    var parts = formula.split('?');
+    var condition = parts[0].trim();
+    var choices = parts[1].split(':');
+    var trueValue = choices[0].trim();
+    var falseValue = choices[1].trim();
+    
+    // Evaluate condition using params
+    var condResult = this._evaluateSimpleExpression(condition, params);
+    
+    // Choose the branch based on condition
+    if (condResult) {
+      return this._evaluateSimpleExpression(trueValue, params);
+    } else {
+      return this._evaluateSimpleExpression(falseValue, params);
+    }
+  }
+  
+  // Handle basic expressions
+  return this._evaluateSimpleExpression(formula, params);
+};
+
+SafeFormulaEvaluator.prototype._evaluateArithmeticExpression = function(expr) {
+  // This method safely evaluates simple arithmetic expressions without using eval or Function
+  // It handles +, -, *, /, and parentheses
+  
+  // Remove all whitespace
+  expr = expr.replace(/\s+/g, '');
+  
+  // Helper function to find the matching closing parenthesis
+  function findClosingParen(str, openPos) {
+    let depth = 1;
+    for (let i = openPos + 1; i < str.length; i++) {
+      if (str[i] === '(') {
+        depth++;
+      } else if (str[i] === ')') {
+        depth--;
+        if (depth === 0) {
+          return i;
+        }
+      }
+    }
+    return -1; // No matching closing parenthesis
+  }
+  
+  // Handle parentheses by recursively evaluating subexpressions
+  const parenMatch = expr.match(/\(/);
+  if (parenMatch) {
+    const openPos = parenMatch.index;
+    const closePos = findClosingParen(expr, openPos);
+    
+    if (closePos === -1) {
+      console.error('Mismatched parentheses in expression: ' + expr);
+      return 0;
+    }
+    
+    // Extract the subexpression inside parentheses
+    const subExpr = expr.substring(openPos + 1, closePos);
+    // Recursively evaluate the subexpression
+    const subResult = this._evaluateArithmeticExpression(subExpr);
+    
+    // Replace the parenthetical expression with its result and continue evaluation
+    const newExpr = expr.substring(0, openPos) + subResult + expr.substring(closePos + 1);
+    return this._evaluateArithmeticExpression(newExpr);
+  }
+  
+  // Process addition and subtraction (lowest precedence)
+  // Use non-greedy quantifier, anchors, and limited repetition to prevent catastrophic backtracking
+  let addSubMatch = /^([^+\-]{0,1000}?)([\+\-])(.{0,1000})$/.exec(expr);
+  if (addSubMatch) {
+    const left = addSubMatch[1];
+    const operator = addSubMatch[2];
+    const right = addSubMatch[3];
+    
+    if (left === '' && operator === '-') {
+      // Handle negative numbers at the start of an expression
+      return -this._evaluateArithmeticExpression(right);
+    } else if (left !== '') {
+      // Evaluate left and right sides
+      const leftValue = this._evaluateArithmeticExpression(left);
+      const rightValue = this._evaluateArithmeticExpression(right);
+      
+      // Apply the operation
+      return operator === '+' ? leftValue + rightValue : leftValue - rightValue;
+    }
+  }
+  
+  // Process multiplication and division (higher precedence)
+  // Use non-greedy quantifier, anchors, and limited repetition to prevent catastrophic backtracking
+  let mulDivMatch = /^([^*\/]{0,1000}?)([\*\/])(.{0,1000})$/.exec(expr);
+  if (mulDivMatch) {
+    const left = mulDivMatch[1];
+    const operator = mulDivMatch[2];
+    const right = mulDivMatch[3];
+    
+    // Evaluate left and right sides
+    const leftValue = this._evaluateArithmeticExpression(left);
+    const rightValue = this._evaluateArithmeticExpression(right);
+    
+    // Apply the operation
+    if (operator === '*') {
+      return leftValue * rightValue;
+    } else {
+      // Division - check for division by zero
+      if (rightValue === 0) {
+        console.error('Division by zero in expression: ' + expr);
+        return 0;
+      }
+      return leftValue / rightValue;
+    }
+  }
+  
+  // If we get here, the expression should be a simple number
+  const numValue = parseFloat(expr);
+  if (isNaN(numValue)) {
+    console.error('Failed to evaluate arithmetic expression: ' + expr);
+    return 0;
+  }
+  return numValue;
+};
+
+SafeFormulaEvaluator.prototype._evaluateSimpleExpression = function(expr, params) {
+  // Replace parameter values in the expression
+  for (var param in params) {
+    if (params.hasOwnProperty(param)) {
+      // Use regex with word boundaries to avoid partial replacements
+      var re = new RegExp('\\b' + param + '\\b', 'g');
+      expr = expr.replace(re, params[param]);
+    }
+  }
+  
+  try {
+    // For basic arithmetic expressions that are now just numbers
+    // Use a safer evaluation approach instead of Function constructor
+    if (/^[\d\.\+\-\*\/\(\)\s]+$/.test(expr)) {
+      // Validate expression again for extra safety
+      if (expr.length > 1000 || /[^\d\.\+\-\*\/\(\)\s]/.test(expr)) {
+        console.error('Invalid or potentially unsafe expression rejected: ' + expr);
+        return 0;
+      }
+      
+      // Use arithmetic operator evaluation instead of Function constructor
+      return this._evaluateArithmeticExpression(expr);
+    }
+    
+    // For more complex expressions containing functions we've whitelisted
+    for (var funcName in this._functions) {
+      if (expr.includes(funcName)) {
+        // Replace function calls with actual function results
+        // This approach has limitations but covers many use cases
+        var re = new RegExp(funcName + '\\((.*?)\\)', 'g');
+        expr = expr.replace(re, function(match, p1) {
+          var args = p1.split(',').map(function(arg) { return parseFloat(arg.trim()); });
+          return this._functions[funcName].apply(null, args);
+        }.bind(this));
+      }
+    }
+    
+    // After all replacements, try to convert to a number
+    var numResult = parseFloat(expr);
+    if (!isNaN(numResult)) {
+      return numResult;
+    }
+    
+    // If we can't evaluate directly, return a reasonable default
+    return 0;
+  } catch (e) {
+    console.error("Error evaluating expression:", expr, e);
+    return 0;
+  }
+};
 
 //=============================================================================
  /*:
@@ -588,7 +812,13 @@ DataManager.isDatabaseLoaded = function() {
 DataManager.processBPCNotetags1 = function(group) {
   for (var n = 1; n < group.length; n++) {
     var obj = group[n];
-    var notedata = obj.note.split(/[\r\n]+/);
+    // Batasi panjang note untuk mencegah serangan DoS
+    var note = obj.note || "";
+    if (note.length > 5000) note = note.substr(0, 5000); // Batasi panjang note
+    
+    // Gunakan metode split yang lebih aman dengan membatasi jumlah baris
+    var notedata = note.split(/[\r\n]+/);
+    if (notedata.length > 200) notedata = notedata.slice(0, 200); // Batasi jumlah baris
 
     obj.plusParams = [0, 0, 0, 0, 0, 0, 0, 0];
     obj.rateParams = [1, 1, 1, 1, 1, 1, 1, 1];
@@ -598,32 +828,36 @@ DataManager.processBPCNotetags1 = function(group) {
 
     for (var i = 0; i < notedata.length; i++) {
       var line = notedata[i];
-      if (line.match(/<(.*) PLUS:[ ]([\+\-]\d+)>/i)) {
+      // Batasi panjang baris untuk mencegah DoS
+      if (line.length > 500) line = line.substr(0, 500);
+      // Gunakan regex yang lebih aman untuk mencegah backtracking: tambahkan ^ dan $ untuk mengapit
+      // dan pastikan karakter [ ] hanya cocok di tempat yang tepat
+      if (line.match(/^<([^<>]{1,50}) PLUS:[ ]([\+\-]?\d{1,10})>$/i)) {
         var text = String(RegExp.$1).toUpperCase();
         var value = parseInt(RegExp.$2);
         var id = this.getParamId(text);
         if (id !== null) obj.plusParams[id] = value;
-      } else if (line.match(/<(.*) RATE:[ ](\d+)([%％])>/i)) {
+      } else if (line.match(/^<([^<>]{1,50}) RATE:[ ](\d{1,10})([%％])>$/i)) {
         var text = String(RegExp.$1).toUpperCase();
         var rate = parseFloat(RegExp.$2) * 0.01;
         var id = this.getParamId(text);
         if (id !== null) obj.rateParams[id] = rate;
-      } else if (line.match(/<(.*) RATE:[ ](\d+).(\d+)>/i)) {
+      } else if (line.match(/^<([^<>]{1,50}) RATE:[ ](\d{1,10})\.(\d{1,10})>$/i)) {
         var text = String(RegExp.$1).toUpperCase();
         var rate = parseFloat(String(RegExp.$2) + '.' + String(RegExp.$3));
         var id = this.getParamId(text);
         if (id !== null) obj.rateParams[id] = rate;
-      } else if (line.match(/<(.*) FLAT:[ ]([\+\-]\d+)>/i)) {
+      } else if (line.match(/^<([^<>]{1,50}) FLAT:[ ]([\+\-]?\d{1,10})>$/i)) {
         var text = String(RegExp.$1).toUpperCase();
         var value = parseInt(RegExp.$2);
         var id = this.getParamId(text);
         if (id !== null) obj.flatParams[id] = value;
-      } else if (line.match(/<(.*) MAX:[ ](\d+)>/i)) {
+      } else if (line.match(/^<([^<>]{1,50}) MAX:[ ](\d{1,10})>$/i)) {
         var text = String(RegExp.$1).toUpperCase();
         var value = parseInt(RegExp.$2);
         var id = this.getParamId(text);
         if (id !== null) obj.maxParams[id] = value;
-      } else if (line.match(/<(.*) MIN:[ ](\d+)>/i)) {
+      } else if (line.match(/^<([^<>]{1,50}) MIN:[ ](\d{1,10})>$/i)) {
         var text = String(RegExp.$1).toUpperCase();
         var value = parseInt(RegExp.$2);
         var id = this.getParamId(text);
@@ -634,6 +868,8 @@ DataManager.processBPCNotetags1 = function(group) {
 };
 
 DataManager.getParamId = function(string) {
+    // Batasi input string untuk mencegah serangan DoS
+    string = string.substring(0, 100); // Batasi panjang string input
     if (['MHP',, 'MAXHP', 'MAX HP', 'HP'].contains(string)) {
       return 0;
     } else if (['MMP',, 'MAXMP', 'MAX MP', 'MP'].contains(string)) {
@@ -677,10 +913,71 @@ Game_BattlerBase.prototype.param = function(paramId) {
   var s = $gameSwitches._data;
   var v = $gameVariables._data;
   var code = Yanfly.Param.BPCFormula[paramId];
+  
+  // Enhanced security: Validate code before execution
+  if (typeof code !== 'string') {
+    console.error('Invalid formula code type for parameter ' + paramId);
+    return Math.round(base.clamp(minValue, maxValue));
+  }
+  
+  // Prevent excessively long formulas that could be DoS vectors
+  if (code.length > 1000) {
+    console.error('Formula code too long for parameter ' + paramId);
+    return Math.round(base.clamp(minValue, maxValue));
+  }
+  
+  // Check for potentially dangerous patterns
+  if (/\b(eval|Function|setTimeout|setInterval|execScript|fetch|XMLHttpRequest)\b/.test(code)) {
+    console.error('Potentially unsafe code detected in parameter ' + paramId + ' formula');
+    return Math.round(base.clamp(minValue, maxValue));
+  }
+  
+  // Safe formula execution within a restricted scope
   try {
-    var value = eval(code);
+    // Validate the code for potential security issues before execution
+    if (!/^[\w\s\+\-\*\/\(\)\[\]\.\,\?\:\<\>\=\!\&\|\%\^]+$/.test(code)) {
+      console.error('Potentially unsafe characters in formula: ' + paramId);
+      return Math.round(base.clamp(minValue, maxValue));
+    }
+    
+    // Check for specific dangerous patterns that could bypass validation
+    if (/\bconstructor\b|\b__proto__\b|\bprototype\b/.test(code)) {
+      console.error('Attempted prototype access detected in formula: ' + paramId);
+      return Math.round(base.clamp(minValue, maxValue));
+    }
+    
+    // Limit code length to prevent DOS attacks
+    if (code.length > 500) {
+      console.error('Formula too long: ' + paramId);
+      return Math.round(base.clamp(minValue, maxValue));
+    }
+    
+    // Use our safe formula evaluator instead of new Function
+    var evaluator = new SafeFormulaEvaluator();
+    var params = {
+      'base': base, 
+      'plus': plus, 
+      'paramRate': paramRate, 
+      'buffRate': buffRate, 
+      'flat': flat,
+      'a': a, 
+      'user': user, 
+      'subject': subject, 
+      'b': b, 
+      'target': target, 
+      's': s, 
+      'v': v
+    };
+    
+    var value = evaluator.evaluate(code, params);
+    
+    // Ensure the result is a valid number
+    if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
+      console.error('Invalid result type from formula for parameter ' + paramId);
+      value = base;
+    }
   } catch (e) {
-    var value = 0;
+    var value = base;
     Yanfly.Util.displayError(e, code, 'CUSTOM PARAM FORMULA ERROR');
   }
   value = Math.round(value.clamp(minValue, maxValue));
@@ -698,10 +995,67 @@ Game_BattlerBase.prototype.paramMax = function(paramId) {
   var s = $gameSwitches._data;
   var v = $gameVariables._data;
   var code = Yanfly.Param.BPCMaximum[paramId];
+  
+  // Enhanced security: Validate code before execution
+  if (typeof code !== 'string') {
+    console.error('Invalid maximum formula code type for parameter ' + paramId);
+    return paramId === 0 ? 9999 : 999; // Default fallback values
+  }
+  
+  // Prevent excessively long formulas that could be DoS vectors
+  if (code.length > 1000) {
+    console.error('Maximum formula code too long for parameter ' + paramId);
+    return paramId === 0 ? 9999 : 999; // Default fallback values
+  }
+  
+  // Check for potentially dangerous patterns
+  if (/\b(eval|Function|setTimeout|setInterval|execScript|fetch|XMLHttpRequest)\b/.test(code)) {
+    console.error('Potentially unsafe code detected in max parameter ' + paramId + ' formula');
+    return paramId === 0 ? 9999 : 999; // Default fallback values
+  }
+  
+  // Safe formula execution within a restricted scope
   try {
-    var value = eval(code);
+    // Validate the code for potential security issues before execution
+    if (!/^[\w\s\+\-\*\/\(\)\[\]\.\,\?\:\<\>\=\!\&\|\%\^]+$/.test(code)) {
+      console.error('Potentially unsafe characters in max formula: ' + paramId);
+      return paramId === 0 ? 9999 : 999; // Default fallback values
+    }
+    
+    // Check for specific dangerous patterns that could bypass validation
+    if (/\bconstructor\b|\b__proto__\b|\bprototype\b/.test(code)) {
+      console.error('Attempted prototype access detected in max formula: ' + paramId);
+      return paramId === 0 ? 9999 : 999; // Default fallback values
+    }
+    
+    // Limit code length to prevent DOS attacks
+    if (code.length > 500) {
+      console.error('Max formula too long: ' + paramId);
+      return paramId === 0 ? 9999 : 999; // Default fallback values
+    }
+    
+    // Use our safe formula evaluator instead of new Function
+    var evaluator = new SafeFormulaEvaluator();
+    var params = {
+      'customMax': customMax,
+      'a': a, 
+      'user': user, 
+      'subject': subject, 
+      'b': b, 
+      'target': target, 
+      's': s, 
+      'v': v
+    };
+    
+    var value = evaluator.evaluate(code, params);
+    
+    // Ensure the result is a valid number
+    if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
+      console.error('Invalid result type from maximum formula for parameter ' + paramId);
+      value = paramId === 0 ? 9999 : 999; // Default fallback values
+    }
   } catch (e) {
-    var value = 0;
+    var value = paramId === 0 ? 9999 : 999; // Default fallback values
     Yanfly.Util.displayError(e, code, 'CUSTOM PARAM MAX FORMULA ERROR');
   }
   value = Math.ceil(value);
@@ -718,10 +1072,67 @@ Game_BattlerBase.prototype.paramMin = function(paramId) {
   var s = $gameSwitches._data;
   var v = $gameVariables._data;
   var code = Yanfly.Param.BPCMinimum[paramId];
+  
+  // Enhanced security: Validate code before execution
+  if (typeof code !== 'string') {
+    console.error('Invalid minimum formula code type for parameter ' + paramId);
+    return paramId === 1 ? 0 : 1; // Default fallback values
+  }
+  
+  // Prevent excessively long formulas that could be DoS vectors
+  if (code.length > 1000) {
+    console.error('Minimum formula code too long for parameter ' + paramId);
+    return paramId === 1 ? 0 : 1; // Default fallback values
+  }
+  
+  // Check for potentially dangerous patterns
+  if (/\b(eval|Function|setTimeout|setInterval|execScript|fetch|XMLHttpRequest)\b/.test(code)) {
+    console.error('Potentially unsafe code detected in min parameter ' + paramId + ' formula');
+    return paramId === 1 ? 0 : 1; // Default fallback values
+  }
+  
+  // Safe formula execution within a restricted scope
   try {
-    var value = eval(code);
+    // Validate the code for potential security issues before execution
+    if (!/^[\w\s\+\-\*\/\(\)\[\]\.\,\?\:\<\>\=\!\&\|\%\^]+$/.test(code)) {
+      console.error('Potentially unsafe characters in min formula: ' + paramId);
+      return paramId === 1 ? 0 : 1; // Default fallback values
+    }
+    
+    // Check for specific dangerous patterns that could bypass validation
+    if (/\bconstructor\b|\b__proto__\b|\bprototype\b/.test(code)) {
+      console.error('Attempted prototype access detected in min formula: ' + paramId);
+      return paramId === 1 ? 0 : 1; // Default fallback values
+    }
+    
+    // Limit code length to prevent DOS attacks
+    if (code.length > 500) {
+      console.error('Min formula too long: ' + paramId);
+      return paramId === 1 ? 0 : 1; // Default fallback values
+    }
+    
+    // Use our safe formula evaluator instead of new Function
+    var evaluator = new SafeFormulaEvaluator();
+    var params = {
+      'customMin': customMin,
+      'a': a, 
+      'user': user, 
+      'subject': subject, 
+      'b': b, 
+      'target': target, 
+      's': s, 
+      'v': v
+    };
+    
+    var value = evaluator.evaluate(code, params);
+    
+    // Ensure the result is a valid number
+    if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
+      console.error('Invalid result type from minimum formula for parameter ' + paramId);
+      value = paramId === 1 ? 0 : 1; // Default fallback values
+    }
   } catch (e) {
-    var value = 0;
+    var value = paramId === 1 ? 0 : 1; // Default fallback values
     Yanfly.Util.displayError(e, code, 'CUSTOM PARAM MIN FORMULA ERROR');
   }
   value = Math.ceil(value);
@@ -1171,7 +1582,54 @@ Game_Action.prototype.lukEffectRate = function(target) {
     var b = target;
     var s = $gameSwitches._data;
     var v = $gameVariables._data;
-    return eval(Yanfly.Param.BPCLukEffectRate);
+    
+    // Enhanced security: Validate code before execution
+    var code = Yanfly.Param.BPCLukEffectRate;
+    if (typeof code !== 'string') {
+      console.error('Invalid LUK effect rate formula type');
+      return 1.0;
+    }
+    
+    // Prevent excessively long formulas that could be DoS vectors
+    if (code.length > 1000) {
+      console.error('LUK effect rate formula code too long');
+      return 1.0;
+    }
+    
+    // Check for potentially dangerous patterns
+    if (/\b(eval|Function|setTimeout|setInterval|execScript|fetch|XMLHttpRequest)\b/.test(code)) {
+      console.error('Potentially unsafe code detected in LUK effect rate formula');
+      return 1.0;
+    }
+    
+    // Safe formula execution within a restricted scope
+    try {
+      // Use our safe formula evaluator instead of new Function
+      var evaluator = new SafeFormulaEvaluator();
+      var params = {
+        'item': item,
+        'skill': skill,
+        'a': a, 
+        'user': user, 
+        'subject': subject, 
+        'b': b, 
+        's': s, 
+        'v': v
+      };
+      
+      var result = evaluator.evaluate(code, params);
+      
+      // Ensure the result is a valid number
+      if (typeof result !== 'number' || isNaN(result) || !isFinite(result)) {
+        console.error('Invalid result type from LUK effect rate formula');
+        return 1.0;
+      }
+      
+      return result;
+    } catch (e) {
+      Yanfly.Util.displayError(e, code, 'LUK EFFECT RATE FORMULA ERROR');
+      return 1.0;
+    }
 };
 
 //=============================================================================

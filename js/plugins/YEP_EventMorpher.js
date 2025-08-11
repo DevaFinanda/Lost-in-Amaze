@@ -202,7 +202,8 @@ Yanfly.EventMorph.version = 1.00;
 Yanfly.Parameters = PluginManager.parameters('YEP_EventMorpher');
 Yanfly.Param = Yanfly.Param || {};
 
-Yanfly.Param.EventMorpherData = eval(Yanfly.Parameters['TemplateMaps']);
+// Using JSON.parse instead of eval for security
+Yanfly.Param.EventMorpherData = JSON.parse(Yanfly.Parameters['TemplateMaps']);
 Yanfly.Param.EventMorpherList = JSON.parse(Yanfly.Parameters['TemplateNames']);
 
 Yanfly.PreloadedMaps = Yanfly.PreloadedMaps || [];

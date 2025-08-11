@@ -489,12 +489,15 @@ Yanfly.Param.MSGDefaultRows = String(Yanfly.Parameters['Default Rows']);
 Yanfly.Param.MSGDefaultWidth = String(Yanfly.Parameters['Default Width']);
 Yanfly.Param.MSGFaceIndent = String(Yanfly.Parameters['Face Indent']);
 Yanfly.Param.MSGFastForwardKey = String(Yanfly.Parameters['Fast Forward Key']);
-Yanfly.Param.MSGFFOn = eval(String(Yanfly.Parameters['Enable Fast Forward']));
+// Safely convert string to boolean without using eval
+Yanfly.Param.MSGFFOn = String(Yanfly.Parameters['Enable Fast Forward']).toLowerCase() === 'true';
 Yanfly.Param.MSGWordWrap = String(Yanfly.Parameters['Word Wrapping']);
-Yanfly.Param.MSGWordWrap = eval(Yanfly.Param.MSGWordWrap);
+// Safely convert string to boolean without using eval
+Yanfly.Param.MSGWordWrap = Yanfly.Param.MSGWordWrap.toLowerCase() === 'true';
 Yanfly.Param.MSGDescWrap = String(Yanfly.Parameters['Description Wrap']);
-Yanfly.Param.MSGWrapSpace = eval(String(Yanfly.Parameters['Word Wrap Space']));
-Yanfly.Param.MSGTightWrap = eval(String(Yanfly.Parameters['Tight Wrap']));
+// Safely convert string to boolean without using eval
+Yanfly.Param.MSGWrapSpace = String(Yanfly.Parameters['Word Wrap Space']).toLowerCase() === 'true';
+Yanfly.Param.MSGTightWrap = String(Yanfly.Parameters['Tight Wrap']).toLowerCase() === 'true';
 
 Yanfly.Param.MSGFontName = String(Yanfly.Parameters['Font Name']);
 Yanfly.Param.MSGCNFontName = String(Yanfly.Parameters['Font Name CH']);
@@ -504,7 +507,8 @@ Yanfly.Param.MSGFontSizeChange = String(Yanfly.Parameters['Font Size Change']);
 Yanfly.Param.MSGFontChangeMax = String(Yanfly.Parameters['Font Changed Max']);
 Yanfly.Param.MSGFontChangeMin = String(Yanfly.Parameters['Font Changed Min']);
 Yanfly.Param.MSGFontOutline = Number(Yanfly.Parameters['Font Outline']);
-Yanfly.Param.MSGFontMaintain = eval(String(Yanfly.Parameters['Maintain Font']));
+// Safely convert string to boolean without using eval
+Yanfly.Param.MSGFontMaintain = String(Yanfly.Parameters['Maintain Font']).toLowerCase() === 'true';
 
 Yanfly.Param.MSGNameBoxBufferX = String(Yanfly.Parameters['Name Box Buffer X']);
 Yanfly.Param.MSGNameBoxBufferY = String(Yanfly.Parameters['Name Box Buffer Y']);
@@ -513,7 +517,8 @@ Yanfly.Param.MSGNameBoxColor = Number(Yanfly.Parameters['Name Box Color']);
 Yanfly.Param.MSGNameBoxClear = String(Yanfly.Parameters['Name Box Clear']);
 Yanfly.Param.MSGNameBoxText = String(Yanfly.Parameters['Name Box Added Text']);
 Yanfly.Param.MSGNameBoxClose = String(Yanfly.Parameters['Name Box Auto Close']);
-Yanfly.Param.MSGNameBoxClose = eval(Yanfly.Param.MSGNameBoxClose);
+// Safely convert string to boolean without using eval
+Yanfly.Param.MSGNameBoxClose = Yanfly.Param.MSGNameBoxClose.toLowerCase() === 'true';
 
 //=============================================================================
 // Bitmap
@@ -559,13 +564,62 @@ Game_System.prototype.initMessageFontSettings = function() {
     this._msgFontOutline = Yanfly.Param.MSGFontOutline;
 };
 
+// Safe parsing function that doesn't use eval or new Function
+Game_System.prototype.safeParseInt = function(value, defaultValue) {
+    if (value === undefined) return defaultValue;
+    // Check if value is already a number
+    if (typeof value === 'number') return value;
+    // Handle simple mathematical expressions
+    if (typeof value === 'string') {
+        // Remove all whitespace
+        value = value.replace(/\s+/g, '');
+        
+        // Handle simple constants
+        if (value === 'Graphics.boxWidth') return Graphics.boxWidth;
+        if (value === 'Graphics.boxHeight') return Graphics.boxHeight;
+        
+        // Try to parse as integer
+        var intVal = parseInt(value);
+        if (!isNaN(intVal)) return intVal;
+        
+        // Handle simple addition and subtraction
+        if (value.includes('+') || value.includes('-')) {
+            var parts = value.split(/([+\-])/);
+            var result = 0;
+            var operator = '+';
+            
+            for (var i = 0; i < parts.length; i++) {
+                var part = parts[i];
+                if (part === '+' || part === '-') {
+                    operator = part;
+                } else {
+                    var num = this.safeParseInt(part, 0);
+                    if (operator === '+') result += num;
+                    else if (operator === '-') result -= num;
+                }
+            }
+            return result;
+        }
+    }
+    return defaultValue;
+};
+
 Game_System.prototype.messageRows = function() {
-    var rows = eval(this._messageRows) || eval(Yanfly.Param.MSGDefaultRows);
+    var rows;
+    if (this._messageRows) {
+        rows = this.safeParseInt(this._messageRows, 4);
+    } else {
+        rows = this.safeParseInt(Yanfly.Param.MSGDefaultRows, 4);
+    }
     return Math.max(1, Number(rows));
 };
 
 Game_System.prototype.messageWidth = function() {
-    return eval(this._messageWidth) || eval(Yanfly.Param.MSGDefaultWidth);
+    if (this._messageWidth) {
+        return this.safeParseInt(this._messageWidth, Graphics.boxWidth);
+    } else {
+        return this.safeParseInt(Yanfly.Param.MSGDefaultWidth, Graphics.boxWidth);
+    }
 };
 
 Game_System.prototype.wordWrap = function() {
@@ -879,13 +933,19 @@ Window_Base.prototype.processEscapeCharacter = function(code, textState) {
 };
 
 Window_Base.prototype.makeFontBigger = function() {
-    var size = this.contents.fontSize + eval(Yanfly.Param.MSGFontSizeChange);
-    this.contents.fontSize = Math.min(size, Yanfly.Param.MSGFontChangeMax);
+    var fontSizeChange = $gameSystem.safeParseInt(Yanfly.Param.MSGFontSizeChange, 12);
+    var size = this.contents.fontSize + fontSizeChange;
+    
+    var fontChangeMax = $gameSystem.safeParseInt(Yanfly.Param.MSGFontChangeMax, 96);
+    this.contents.fontSize = Math.min(size, fontChangeMax);
 };
 
 Window_Base.prototype.makeFontSmaller = function() {
-  var size = this.contents.fontSize - eval(Yanfly.Param.MSGFontSizeChange);
-  this.contents.fontSize = Math.max(size, Yanfly.Param.MSGFontChangeMin);
+    var fontSizeChange = $gameSystem.safeParseInt(Yanfly.Param.MSGFontSizeChange, 12);
+    var size = this.contents.fontSize - fontSizeChange;
+    
+    var fontChangeMin = $gameSystem.safeParseInt(Yanfly.Param.MSGFontChangeMin, 12);
+    this.contents.fontSize = Math.max(size, fontChangeMin);
 };
 
 Yanfly.Message.Window_Base_processNormalCharacter =
@@ -962,7 +1022,9 @@ Window_Base.prototype.textWidthExCheck = function(text) {
 
 Yanfly.Message.Window_Help_setItem = Window_Help.prototype.setItem;
 Window_Help.prototype.setItem = function(item) {
-    if (eval(Yanfly.Param.MSGDescWrap)) {
+    var descWrap = Yanfly.Param.MSGDescWrap.toLowerCase() === 'true';
+    
+    if (descWrap) {
       this.setText(item ? '<WordWrap>' + item.description : '');
     } else {
       Yanfly.Message.Window_Help_setItem.call(this, item);
@@ -1065,7 +1127,10 @@ Window_NameBox.prototype.initialize = function(parentWindow) {
     this._openness = 0;
     this._closeCounter = 0;
     this.deactivate();
-    if (eval(Yanfly.Param.MSGNameBoxClear)) {
+    
+    var nameBoxClear = Yanfly.Param.MSGNameBoxClear.toLowerCase() === 'true';
+    
+    if (nameBoxClear) {
       this.backOpacity = 0;
       this.opacity = 0;
     }
@@ -1076,7 +1141,16 @@ Window_NameBox.prototype.windowWidth = function() {
     this.resetFontSettings();
     var dw = this.textWidthEx(this._text);
     dw += this.padding * 2;
-    var width = dw + eval(Yanfly.Param.MSGNameBoxPadding)
+    
+    // Get padding with safe parsing
+    var padding;
+    if (Yanfly.Param.MSGNameBoxPadding === "this.standardPadding() * 4") {
+        padding = this.standardPadding() * 4;
+    } else {
+        padding = $gameSystem.safeParseInt(Yanfly.Param.MSGNameBoxPadding, 18);
+    }
+    
+    var width = dw + padding;
     return Math.ceil(width);
 };
 
@@ -1122,7 +1196,16 @@ Window_NameBox.prototype.refresh = function(text, position) {
     this.contents.clear();
     this.resetFontSettings();
     this.changeTextColor(this.textColor(Yanfly.Param.MSGNameBoxColor));
-    var padding = eval(Yanfly.Param.MSGNameBoxPadding) / 2;
+    
+    // Get padding with safe parsing
+    var nameBoxPadding;
+    if (Yanfly.Param.MSGNameBoxPadding === "this.standardPadding() * 4") {
+        nameBoxPadding = this.standardPadding() * 4;
+    } else {
+        nameBoxPadding = $gameSystem.safeParseInt(Yanfly.Param.MSGNameBoxPadding, 18);
+    }
+    
+    var padding = nameBoxPadding / 2;
     this.drawTextEx(this._text, padding, 0, this.contents.width);
     this._parentWindow.adjustWindowSettings();
     this._parentWindow.updatePlacement();
@@ -1137,7 +1220,11 @@ Window_NameBox.prototype.refresh = function(text, position) {
 Window_NameBox.prototype.adjustPositionX = function() {
     if (this._position === 1) {
       this.x = this._parentWindow.x;
-      this.x += eval(Yanfly.Param.MSGNameBoxBufferX);
+      
+      // Get buffer X with safe parsing
+      var bufferX = $gameSystem.safeParseInt(Yanfly.Param.MSGNameBoxBufferX, -28);
+      
+      this.x += bufferX;
     } else if (this._position === 2) {
       this.x = this._parentWindow.x;
       this.x += this._parentWindow.width * 3 / 10;
@@ -1153,23 +1240,31 @@ Window_NameBox.prototype.adjustPositionX = function() {
     } else {
       this.x = this._parentWindow.x + this._parentWindow.width;
       this.x -= this.width;
-      this.x -= eval(Yanfly.Param.MSGNameBoxBufferX);
+      
+      // Get buffer X with safe parsing
+      var bufferX = $gameSystem.safeParseInt(Yanfly.Param.MSGNameBoxBufferX, -28);
+      
+      this.x -= bufferX;
     }
     this.x = this.x.clamp(0, Graphics.boxWidth - this.width);
 };
 
 Window_NameBox.prototype.adjustPositionY = function() {
+    // Get buffer Y with safe parsing
+    var bufferY = $gameSystem.safeParseInt(Yanfly.Param.MSGNameBoxBufferY, 0);
+    
     if ($gameMessage.positionType() === 0) {
       this.y = this._parentWindow.y + this._parentWindow.height;
-      this.y -= eval(Yanfly.Param.MSGNameBoxBufferY);
+      this.y -= bufferY;
     } else {
       this.y = this._parentWindow.y;
       this.y -= this.height;
-      this.y += eval(Yanfly.Param.MSGNameBoxBufferY);
+      this.y += bufferY;
     }
     if (this.y < 0) {
       this.y = this._parentWindow.y + this._parentWindow.height;
-      this.y -= eval(Yanfly.Param.MSGNameBoxBufferY);
+      // We can reuse bufferY since we already calculated it above
+      this.y -= bufferY;
     }
 };
 
@@ -1245,7 +1340,12 @@ Window_Message.prototype.newLineX = function() {
     if ($gameMessage.faceName() === '') {
       return 0;
     } else {
-      return eval(Yanfly.Param.MSGFaceIndent);
+      // Get face indent with safe parsing
+      if (Yanfly.Param.MSGFaceIndent === "Window_Base._faceWidth + 24") {
+        return Window_Base._faceWidth + 24;
+      } else {
+        return $gameSystem.safeParseInt(Yanfly.Param.MSGFaceIndent, Window_Base._faceWidth + 24);
+      }
     }
 };
 

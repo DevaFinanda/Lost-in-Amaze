@@ -160,7 +160,8 @@ Yanfly.Parameters = PluginManager.parameters('YEP_FpsSynchOption');
 Yanfly.Param = Yanfly.Param || {};
 
 Yanfly.Param.FpsSynchCmd = String(Yanfly.Parameters['Command Name']);
-Yanfly.Param.FpsSDefault = eval(String(Yanfly.Parameters['Default Setting']));
+// Convert string to boolean safely without using eval
+Yanfly.Param.FpsSDefault = String(Yanfly.Parameters['Default Setting']).toLowerCase() === 'true';
 
 //=============================================================================
 // MainCode
@@ -235,7 +236,7 @@ text += 'You are getting this error because you are trying to run FPS Synch ';
 text += 'Options while your project files are lower than version 1.1.0. \n\n';
 text += 'Please visit this thread for instructions on how to update your ';
 text += 'project files to 1.1.0 or higher: \n\n';
-text += 'http://forums.rpgmakerweb.com/index.php?/topic/';
+text += 'https://forums.rpgmakerweb.com/index.php?/topic/';
 text += '71400-rpg-maker-mv-v134-update/';
 console.log(text);
 require('nw.gui').Window.get().showDevTools();

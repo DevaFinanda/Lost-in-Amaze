@@ -182,12 +182,12 @@ Yanfly.EML.version = 1.12
 Yanfly.Parameters = PluginManager.parameters('YEP_EventMiniLabel');
 Yanfly.Param = Yanfly.Param || {};
 
-Yanfly.Param.EMWDefaultShow = eval(String(Yanfly.Parameters['Default Show']));
+Yanfly.Param.EMWDefaultShow = String(Yanfly.Parameters['Default Show']).toLowerCase() === 'true';
 Yanfly.Param.EMWMinWidth = Number(Yanfly.Parameters['Minimum Width']);
 Yanfly.Param.EMWFontSize = Number(Yanfly.Parameters['Font Size']);
 Yanfly.Param.EMWBufferX = Number(Yanfly.Parameters['X Buffer']);
 Yanfly.Param.EMWBufferY = Number(Yanfly.Parameters['Y Buffer']);
-Yanfly.Param.EMWBatTran = eval(String(Yanfly.Parameters['Battle Transition']));
+Yanfly.Param.EMWBatTran = String(Yanfly.Parameters['Battle Transition']).toLowerCase() === 'true';
 
 //=============================================================================
 // Game_System

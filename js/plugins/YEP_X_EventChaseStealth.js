@@ -266,11 +266,54 @@ if (Imported.YEP_EventChasePlayer) {
 // Parameter Variables
 //=============================================================================
 
+// Safe boolean parser to replace eval
+Yanfly.ECS.parseBoolean = function(str) {
+    if (typeof str !== 'string') return false;
+    return str.trim().toLowerCase() === 'true';
+};
+
+// Safe evaluation function for UI positioning
+Yanfly.ECS.safeEval = function(str) {
+    // Handle known parameters safely
+    if (str === 'Graphics.boxHeight - 84') return Graphics.boxHeight - 84;
+    
+    // Try to parse as a simple number first
+    const numberValue = Number(str);
+    if (!isNaN(numberValue)) return numberValue;
+    
+    // Handle common UI calculations with regex
+    const boxHeightMatch = /Graphics\.boxHeight\s*([+-])\s*(\d+)/.exec(str);
+    if (boxHeightMatch) {
+        const operation = boxHeightMatch[1];
+        const value = Number(boxHeightMatch[2]);
+        if (operation === '+') return Graphics.boxHeight + value;
+        if (operation === '-') return Graphics.boxHeight - value;
+    }
+    
+    const boxWidthMatch = /Graphics\.boxWidth\s*([+-])\s*(\d+)/.exec(str);
+    if (boxWidthMatch) {
+        const operation = boxWidthMatch[1];
+        const value = Number(boxWidthMatch[2]);
+        if (operation === '+') return Graphics.boxWidth + value;
+        if (operation === '-') return Graphics.boxWidth - value;
+    }
+    
+    // Default values for gauge positioning if calculation fails
+    if (str === Yanfly.Param.ECSSGaugeX) return 96;
+    if (str === Yanfly.Param.ECSSGaugeY) return Graphics.boxHeight - 84;
+    if (str === Yanfly.Param.ECSSGaugeW) return 120;
+    if (str === Yanfly.Param.ECSSGaugeH) return 24;
+    
+    // Return a safe default if all else fails
+    console.error('SafeEval: Could not safely evaluate: ' + str);
+    return 0;
+};
+
 Yanfly.Parameters = PluginManager.parameters('YEP_X_EventChaseStealth');
 Yanfly.Param = Yanfly.Param || {};
 
 Yanfly.Param.ECSPlayerTrans = Number(Yanfly.Parameters['Player Transparency']);
-Yanfly.Param.ECSStealthDash = eval(String(Yanfly.Parameters['Disable Dash']));
+Yanfly.Param.ECSStealthDash = Yanfly.ECS.parseBoolean(String(Yanfly.Parameters['Disable Dash']));
 Yanfly.Param.ECSMoveSpeed = Number(Yanfly.Parameters['Move Speed']);
 
 Yanfly.Param.ECSRegions = String(Yanfly.Parameters['Stealth Regions']);
@@ -280,9 +323,9 @@ for (Yanfly.i = 0; Yanfly.i < Yanfly.Param.ECSRegions.length; ++Yanfly.i) {
     parseInt(Yanfly.Param.ECSRegions[Yanfly.i]);
 };
 
-Yanfly.Param.ECSShowGauge = eval(String(Yanfly.Parameters['Show Gauge']));
+Yanfly.Param.ECSShowGauge = Yanfly.ECS.parseBoolean(String(Yanfly.Parameters['Show Gauge']));
 Yanfly.Param.ECSSOpacity = Number(Yanfly.Parameters['Gauge Opacity']);
-Yanfly.Param.ECSShowTimer = eval(String(Yanfly.Parameters['Show Timer']));
+Yanfly.Param.ECSShowTimer = Yanfly.ECS.parseBoolean(String(Yanfly.Parameters['Show Timer']));
 Yanfly.Param.ECSSUnlimited = String(Yanfly.Parameters['Unlimited Text']);
 Yanfly.Param.ECSSGaugeX = String(Yanfly.Parameters['Gauge X']);
 Yanfly.Param.ECSSGaugeY = String(Yanfly.Parameters['Gauge Y']);
@@ -588,10 +631,10 @@ Window_StealthGauge.prototype = Object.create(Window_Base.prototype);
 Window_StealthGauge.prototype.constructor = Window_StealthGauge;
 
 Window_StealthGauge.prototype.initialize = function(numLines) {
-    var wx = eval(Yanfly.Param.ECSSGaugeX);
-    var wy = eval(Yanfly.Param.ECSSGaugeY);
-    var ww = eval(Yanfly.Param.ECSSGaugeW);
-    var wh = eval(Yanfly.Param.ECSSGaugeH);
+    var wx = Yanfly.ECS.safeEval(Yanfly.Param.ECSSGaugeX);
+    var wy = Yanfly.ECS.safeEval(Yanfly.Param.ECSSGaugeY);
+    var ww = Yanfly.ECS.safeEval(Yanfly.Param.ECSSGaugeW);
+    var wh = Yanfly.ECS.safeEval(Yanfly.Param.ECSSGaugeH);
     Window_Base.prototype.initialize.call(this, wx, wy, ww, wh);
     this.opacity = 0;
 };

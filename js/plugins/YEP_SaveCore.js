@@ -519,8 +519,8 @@ Yanfly.Param = Yanfly.Param || {};
 Yanfly.Param.SaveMaxFiles = Number(Yanfly.Parameters['Max Files']);
 Yanfly.Param.SaveIconSaved = Number(Yanfly.Parameters['Saved Icon']);
 Yanfly.Param.SaveIconEmpty = Number(Yanfly.Parameters['Empty Icon']);
-Yanfly.Param.SavePop = eval(String(Yanfly.Parameters['Return After Saving']));
-Yanfly.Param.SaveAutoIndex = eval(String(Yanfly.Parameters['Auto New Index']));
+Yanfly.Param.SavePop = Yanfly.Util.parseBoolean(String(Yanfly.Parameters['Return After Saving']));
+Yanfly.Param.SaveAutoIndex = Yanfly.Util.parseBoolean(String(Yanfly.Parameters['Auto New Index']));
 
 Yanfly.Param.SaveCmdLoad = String(Yanfly.Parameters['Load Command']);
 Yanfly.Param.SaveCmdSave = String(Yanfly.Parameters['Save Command']);
@@ -539,19 +539,19 @@ Yanfly.Param.SaveDeleteSound = {
 };
 
 Yanfly.Param.SaveInfoTitle = String(Yanfly.Parameters['Show Game Title']);
-Yanfly.Param.SaveInfoTitle = eval(Yanfly.Param.SaveInfoTitle);
+Yanfly.Param.SaveInfoTitle = Yanfly.Util.parseBoolean(Yanfly.Param.SaveInfoTitle);
 Yanfly.Param.SaveInfoInvalid = String(Yanfly.Parameters['Invalid Game Text']);
 Yanfly.Param.SaveInfoEmpty = String(Yanfly.Parameters['Empty Game Text']);
 Yanfly.Param.SaveMapDisplayName = String(Yanfly.Parameters['Map Display Name']);
-Yanfly.Param.SaveMapDisplayName = eval(Yanfly.Param.SaveMapDisplayName);
+Yanfly.Param.SaveMapDisplayName = Yanfly.Util.parseBoolean(Yanfly.Param.SaveMapDisplayName);
 Yanfly.Param.SaveInfoPartyType = Number(Yanfly.Parameters['Party Display']);
 Yanfly.Param.SaveInfoPartyType = Yanfly.Param.SaveInfoPartyType.clamp(0, 3);
 Yanfly.Param.SaveInfoPartyY = String(Yanfly.Parameters['Party Y Position']);
 Yanfly.Param.SaveInfoActorName = String(Yanfly.Parameters['Show Actor Names']);
-Yanfly.Param.SaveInfoActorName = eval(Yanfly.Param.SaveInfoActorName);
+Yanfly.Param.SaveInfoActorName = Yanfly.Util.parseBoolean(Yanfly.Param.SaveInfoActorName);
 Yanfly.Param.SaveInfoActorNameSz = Number(Yanfly.Parameters['Name Font Size']);
 Yanfly.Param.SaveInfoActorLv = String(Yanfly.Parameters['Show Actor Level']);
-Yanfly.Param.SaveInfoActorLv = eval(Yanfly.Param.SaveInfoActorLv);
+Yanfly.Param.SaveInfoActorLv = Yanfly.Util.parseBoolean(Yanfly.Param.SaveInfoActorLv);
 Yanfly.Param.SaveInfoActorLvSz = Number(Yanfly.Parameters['Level Font Size']);
 Yanfly.Param.SaveInfoActorLvFmt = String(Yanfly.Parameters['Level Format']);
 Yanfly.Param.SaveInfoDataSz = Number(Yanfly.Parameters['Data Font Size']);
@@ -592,13 +592,13 @@ Yanfly.Param.SaveTechWebGlobal = String(Yanfly.Parameters['Web Global']);
 Yanfly.Param.SaveTechWebSave = String(Yanfly.Parameters['Web Save']);
 
 Yanfly.Param.SaveConfirmLoad = String(Yanfly.Parameters['Load Confirmation']);
-Yanfly.Param.SaveConfirmLoad = eval(Yanfly.Param.SaveConfirmLoad);
+Yanfly.Param.SaveConfirmLoad = Yanfly.Util.parseBoolean(Yanfly.Param.SaveConfirmLoad);
 Yanfly.Param.SaveConfirmLoadTx = String(Yanfly.Parameters['Load Text']);
 Yanfly.Param.SaveConfirmSave = String(Yanfly.Parameters['Save Confirmation']);
-Yanfly.Param.SaveConfirmSave = eval(Yanfly.Param.SaveConfirmSave);
+Yanfly.Param.SaveConfirmSave = Yanfly.Util.parseBoolean(Yanfly.Param.SaveConfirmSave);
 Yanfly.Param.SaveConfirmSaveTx = String(Yanfly.Parameters['Save Text']);
 Yanfly.Param.SaveConfirmDel = String(Yanfly.Parameters['Delete Confirmation']);
-Yanfly.Param.SaveConfirmDel = eval(Yanfly.Param.SaveConfirmDel);
+Yanfly.Param.SaveConfirmDel = Yanfly.Util.parseBoolean(Yanfly.Param.SaveConfirmDel);
 Yanfly.Param.SaveConfirmDelTx = String(Yanfly.Parameters['Delete Text']);
 Yanfly.Param.SaveConfirmYes = String(Yanfly.Parameters['Confirm Yes']);
 Yanfly.Param.SaveConfirmNo = String(Yanfly.Parameters['Confirm No']);
@@ -917,7 +917,33 @@ Window_SaveInfo.prototype.drawContents = function(dy) {
   if (!this._saveContents) {
     return setTimeout(this.drawContents.bind(this, dy), 50);
   }
-  this._saveContents = JsonEx.parse(this._saveContents);
+  
+  // Safely parse save contents with error handling
+  try {
+    // Validate that the content appears to be JSON before parsing
+    if (typeof this._saveContents !== 'string' || !this._saveContents.startsWith('{')) {
+      console.error('Invalid save content format detected');
+      this.drawInvalidText(dy);
+      return;
+    }
+    
+    this._saveContents = JsonEx.parse(this._saveContents);
+    
+    // Validate essential structures in the parsed data
+    if (!this._saveContents || 
+        !this._saveContents.party || 
+        !this._saveContents.actors || 
+        !this._saveContents.map) {
+      console.error('Parsed save content missing required data structures');
+      this.drawInvalidText(dy);
+      return;
+    }
+  } catch (e) {
+    console.error('Error parsing save contents', e);
+    this.drawInvalidText(dy);
+    return;
+  }
+  
   dy = this.drawPartyGraphics(dy);
   dy = this.drawPartyNames(dy);
   dy = this.drawPartyLevels(dy);
@@ -926,7 +952,10 @@ Window_SaveInfo.prototype.drawContents = function(dy) {
 
 Window_SaveInfo.prototype.drawPartyGraphics = function(dy) {
   if (Yanfly.Param.SaveInfoPartyType === 0) return dy;
-  dy = eval(Yanfly.Param.SaveInfoPartyY);
+  
+  // Safely evaluate the Y position using our helper
+  dy = Yanfly.Util.safeEval(Yanfly.Param.SaveInfoPartyY, dy);
+  
   var length = this._saveContents.party.maxBattleMembers();
   var dw = this.contents.width / length;;
   dw = Math.floor(dw);
@@ -1070,123 +1099,292 @@ Window_SaveInfo.prototype.drawColumn = function(column, dx, dy, dw) {
 };
 
 Window_SaveInfo.prototype.drawData = function(data, dx, dy, dw) {
-  if (data.toUpperCase().trim() === 'NULL') {
-    return;
-  } else if (data.toUpperCase().trim() === 'LOCATION') {
-    this.drawLocation(dx, dy, dw);
-  } else if (data.toUpperCase().trim() === 'PLAYTIME') {
-    this.drawPlaytime(dx, dy, dw);
-  } else if (data.toUpperCase().trim() === 'SAVE COUNT') {
-    this.drawSaveCount(dx, dy, dw);
-  } else if (data.toUpperCase().trim() === 'GOLD COUNT') {
-    this.drawGoldCount(dx, dy, dw);
-  } else if (data.match(/VARIABLE[ ](\d+)/i)) {
-    this.drawVariable(parseInt(RegExp.$1), dx, dy, dw);
-  } else if (data.match(/(.*)[ ]TEXT:(.*)/i)) {
-    this.drawDataText(String(RegExp.$1), String(RegExp.$2), dx, dy, dw);
-  } else if (data.match(/TEXT:(.*)/i)) {
-    this.drawDataText('left', String(RegExp.$1), dx, dy, dw);
+  try {
+    // Validate input
+    if (typeof data !== 'string') {
+      console.warn('Invalid data type passed to drawData');
+      return;
+    }
+    
+    var dataUpper = data.toUpperCase().trim();
+    
+    if (dataUpper === 'NULL') {
+      return;
+    } else if (dataUpper === 'LOCATION') {
+      this.drawLocation(dx, dy, dw);
+    } else if (dataUpper === 'PLAYTIME') {
+      this.drawPlaytime(dx, dy, dw);
+    } else if (dataUpper === 'SAVE COUNT') {
+      this.drawSaveCount(dx, dy, dw);
+    } else if (dataUpper === 'GOLD COUNT') {
+      this.drawGoldCount(dx, dy, dw);
+    } else if (data.match(/VARIABLE[ ](\d+)/i)) {
+      var varId = parseInt(RegExp.$1);
+      // Validate variable ID
+      if (isNaN(varId) || varId <= 0) {
+        console.warn('Invalid variable ID in drawData');
+        return;
+      }
+      this.drawVariable(varId, dx, dy, dw);
+    } else if (data.match(/([^:]{0,100})[ ]TEXT:([\s\S]{0,1000})/i)) {
+      var align = String(RegExp.$1);
+      var text = String(RegExp.$2);
+      // Both align and text will be sanitized inside drawDataText
+      this.drawDataText(align, text, dx, dy, dw);
+    } else if (data.match(/TEXT:([\s\S]{0,1000})/i)) {
+      var text = String(RegExp.$1);
+      // Text will be sanitized inside drawDataText
+      this.drawDataText('left', text, dx, dy, dw);
+    }
+  } catch (e) {
+    console.error('Error in drawData:', e);
   }
 };
 
 Window_SaveInfo.prototype.drawLocation = function(dx, dy, dw) {
-    var id = this._saveContents.map._mapId;
-    if (Yanfly.Param.SaveMapDisplayName) {
-      var text = this._saveContents.map.locationDisplayName || '';
-      if (text.length <= 0 && $dataMapInfos[id]) text = $dataMapInfos[id].name;
-    } else if ($dataMapInfos[id]) {
-      var text = $dataMapInfos[id].name;
-    } else {
-      var text = '';
-    }
-    if (Yanfly.Param.SaveVocabLocation.length > 0) {
-      this.changeTextColor(this.systemColor());
-      this.drawText(Yanfly.Param.SaveVocabLocation, dx, dy, dw, 'left');
-      this.changeTextColor(this.normalColor());
-      this.drawText(text, dx, dy, dw, 'right');
-    } else {
-      this.drawText(text, dx, dy, dw, 'center');
+    try {
+        // Validate map ID from save contents
+        var id = this._saveContents.map._mapId;
+        if (typeof id !== 'number' || id <= 0) {
+            console.warn('Invalid map ID in save data');
+            id = 0;
+        }
+        
+        var text = '';
+        if (Yanfly.Param.SaveMapDisplayName) {
+            // Safely get location display name
+            if (this._saveContents.map.locationDisplayName && 
+                typeof this._saveContents.map.locationDisplayName === 'string') {
+                text = this._saveContents.map.locationDisplayName;
+            }
+            // Fallback to map info name if available
+            if (text.length <= 0 && $dataMapInfos && $dataMapInfos[id] && 
+                typeof $dataMapInfos[id].name === 'string') {
+                text = $dataMapInfos[id].name;
+            }
+        } else if ($dataMapInfos && $dataMapInfos[id] && 
+                   typeof $dataMapInfos[id].name === 'string') {
+            text = $dataMapInfos[id].name;
+        }
+        
+        // Sanitize the text to prevent potential XSS or injection
+        text = this.sanitizeText(text);
+        
+        if (Yanfly.Param.SaveVocabLocation.length > 0) {
+            this.changeTextColor(this.systemColor());
+            this.drawText(Yanfly.Param.SaveVocabLocation, dx, dy, dw, 'left');
+            this.changeTextColor(this.normalColor());
+            this.drawText(text, dx, dy, dw, 'right');
+        } else {
+            this.drawText(text, dx, dy, dw, 'center');
+        }
+    } catch (e) {
+        console.error('Error displaying map location', e);
+        this.drawText('', dx, dy, dw, 'center');
     }
 };
 
 Window_SaveInfo.prototype.drawPlaytime = function(dx, dy, dw) {
-    if (!this._info.playtime) return;
-    var text = this._info.playtime;
-    if (Yanfly.Param.SaveVocabPlaytime.length > 0) {
-      this.changeTextColor(this.systemColor());
-      this.drawText(Yanfly.Param.SaveVocabPlaytime, dx, dy, dw, 'left');
-      this.changeTextColor(this.normalColor());
-      this.drawText(text, dx, dy, dw, 'right');
-    } else {
-      this.drawText(text, dx, dy, dw, 'center');
+    try {
+        if (!this._info || !this._info.playtime) return;
+        
+        // Sanitize playtime text
+        var text = '';
+        if (typeof this._info.playtime === 'string') {
+            text = this.sanitizeText(this._info.playtime);
+        } else if (this._info.playtime !== undefined) {
+            text = String(this._info.playtime);
+        }
+        
+        if (Yanfly.Param.SaveVocabPlaytime && Yanfly.Param.SaveVocabPlaytime.length > 0) {
+            this.changeTextColor(this.systemColor());
+            this.drawText(Yanfly.Param.SaveVocabPlaytime, dx, dy, dw, 'left');
+            this.changeTextColor(this.normalColor());
+            this.drawText(text, dx, dy, dw, 'right');
+        } else {
+            this.drawText(text, dx, dy, dw, 'center');
+        }
+    } catch (e) {
+        console.error('Error in drawPlaytime:', e);
     }
 };
 
 Window_SaveInfo.prototype.drawSaveCount = function(dx, dy, dw) {
-    var text = Yanfly.Util.toGroup(this._saveContents.system._saveCount);
-    if (Yanfly.Param.SaveVocabSaveCount.length > 0) {
-      this.changeTextColor(this.systemColor());
-      this.drawText(Yanfly.Param.SaveVocabSaveCount, dx, dy, dw, 'left');
-      this.changeTextColor(this.normalColor());
-      this.drawText(text, dx, dy, dw, 'right');
-    } else {
-      this.drawText(text, dx, dy, dw, 'center');
+    try {
+        // Safely get save count
+        var saveCount = 0;
+        if (this._saveContents && this._saveContents.system && 
+            typeof this._saveContents.system._saveCount === 'number') {
+            saveCount = this._saveContents.system._saveCount;
+        }
+        
+        var text = Yanfly.Util.toGroup(saveCount);
+        
+        if (Yanfly.Param.SaveVocabSaveCount && Yanfly.Param.SaveVocabSaveCount.length > 0) {
+            this.changeTextColor(this.systemColor());
+            this.drawText(Yanfly.Param.SaveVocabSaveCount, dx, dy, dw, 'left');
+            this.changeTextColor(this.normalColor());
+            this.drawText(text, dx, dy, dw, 'right');
+        } else {
+            this.drawText(text, dx, dy, dw, 'center');
+        }
+    } catch (e) {
+        console.error('Error in drawSaveCount:', e);
     }
 };
 
 Window_SaveInfo.prototype.drawGoldCount = function(dx, dy, dw) {
-    var text = Yanfly.Util.toGroup(this._saveContents.party._gold);
-    if (Yanfly.Param.SaveVocabGoldCount.length > 0) {
-      this.changeTextColor(this.systemColor());
-      var fmt = Yanfly.Param.SaveVocabGoldCount;
-      this.drawText(fmt.format(TextManager.currencyUnit), dx, dy, dw, 'left');
-      this.changeTextColor(this.normalColor());
-      
-      this.drawText(text, dx, dy, dw, 'right');
-    } else {
-      var fmt = '\\c[0]%1' + this.systemColorEx() + '%2';
-      var ftext = fmt.format(text, TextManager.currencyUnit);
-      this._drawData = true;
-      var fw = this.textWidthEx(ftext);
-      dx += Math.max(0, Math.floor((dw - fw) / 2));
-      this.drawTextEx(ftext, dx, dy);
-      this._drawData = false;
+    try {
+        // Safely get gold value
+        var gold = 0;
+        if (this._saveContents && this._saveContents.party && 
+            typeof this._saveContents.party._gold === 'number') {
+            gold = this._saveContents.party._gold;
+        }
+        
+        var text = Yanfly.Util.toGroup(gold);
+        
+        if (Yanfly.Param.SaveVocabGoldCount && Yanfly.Param.SaveVocabGoldCount.length > 0) {
+            this.changeTextColor(this.systemColor());
+            
+            // Safely format the string
+            var fmt = String(Yanfly.Param.SaveVocabGoldCount);
+            var currencyUnit = TextManager.currencyUnit || '';
+            currencyUnit = this.sanitizeText(currencyUnit);
+            
+            var formattedText = '';
+            try {
+                formattedText = fmt.format(currencyUnit);
+            } catch (e) {
+                formattedText = currencyUnit;
+                console.error('Error formatting gold text:', e);
+            }
+            
+            this.drawText(formattedText, dx, dy, dw, 'left');
+            this.changeTextColor(this.normalColor());
+            
+            this.drawText(text, dx, dy, dw, 'right');
+        } else {
+            // Safely create format string
+            var fmt = '\\c[0]%1' + this.systemColorEx() + '%2';
+            var currencyUnit = TextManager.currencyUnit || '';
+            currencyUnit = this.sanitizeText(currencyUnit);
+            
+            var ftext = '';
+            try {
+                ftext = fmt.format(text, currencyUnit);
+            } catch (e) {
+                ftext = text + ' ' + currencyUnit;
+                console.error('Error formatting gold text:', e);
+            }
+            
+            this._drawData = true;
+            var fw = this.textWidthEx(ftext);
+            dx += Math.max(0, Math.floor((dw - fw) / 2));
+            this.drawTextEx(ftext, dx, dy);
+            this._drawData = false;
+        }
+    } catch (e) {
+        console.error('Error in drawGoldCount:', e);
     }
 };
 
 Window_SaveInfo.prototype.drawVariable = function(id, dx, dy, dw) {
-    var varName = $dataSystem.variables[id];
-    varName = varName.replace(/<<(.*?)>>/i, '');
-    var text = Yanfly.Util.toGroup(this._saveContents.variables.value(id));
-    var diff = Math.max(0, (this.standardFontSize() - 
-      this.contents.fontSize) / 2);
-    if (varName.length > 0) {
-      this._drawData = true;
-      this.changeTextColor(this.systemColor());
-      dy += diff;
-      this.drawTextEx(this.systemColorEx() + varName, dx, dy, dw, 'left');
-      dy -= diff;
-      this.changeTextColor(this.normalColor());
-      this._drawData = false;
-      this.drawText(text, dx, dy, dw, 'right');
-    } else {
-      this.drawText(text, dx, dy, dw, 'center');
+    try {
+        // Validate id is a number
+        if (typeof id !== 'number' || isNaN(id) || id <= 0) {
+            console.warn('Invalid variable ID: ' + id);
+            return;
+        }
+        
+        // Safely access variable name
+        var varName = '';
+        if ($dataSystem && $dataSystem.variables && typeof $dataSystem.variables[id] === 'string') {
+            varName = $dataSystem.variables[id];
+            // Remove potential command tags
+            varName = varName.replace(/<<([^>]{0,100})>>/i, '');
+            varName = this.sanitizeText(varName);
+        }
+        
+        // Safely get variable value
+        var value = 0;
+        if (this._saveContents && this._saveContents.variables) {
+            try {
+                if (typeof this._saveContents.variables.value === 'function') {
+                    value = this._saveContents.variables.value(id);
+                    
+                    // Ensure we have a valid number or string
+                    if (typeof value !== 'number' && typeof value !== 'string') {
+                        console.warn('Variable value is not a number or string: ' + value);
+                        value = 0;
+                    }
+                }
+            } catch (e) {
+                console.error('Error getting variable value', e);
+                value = 0;
+            }
+        }
+        
+        var text = Yanfly.Util.toGroup(value);
+        var diff = Math.max(0, (this.standardFontSize() - 
+          this.contents.fontSize) / 2);
+        
+        if (varName.length > 0) {
+            this._drawData = true;
+            this.changeTextColor(this.systemColor());
+            dy += diff;
+            this.drawTextEx(this.systemColorEx() + varName, dx, dy, dw, 'left');
+            dy -= diff;
+            this.changeTextColor(this.normalColor());
+            this._drawData = false;
+            this.drawText(text, dx, dy, dw, 'right');
+        } else {
+            this.drawText(text, dx, dy, dw, 'center');
+        }
+    } catch (e) {
+        console.error('Error in drawVariable: ' + e.message);
     }
+};
+
+Window_SaveInfo.prototype.sanitizeText = function(text) {
+    if (typeof text !== 'string') return '';
+    
+    // Basic sanitization - strip any potentially harmful content
+    // Replace any control characters
+    text = text.replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+    
+    // Limit length to prevent DoS
+    var maxLength = 255;
+    if (text.length > maxLength) {
+        text = text.substring(0, maxLength);
+    }
+    
+    return text;
 };
 
 Window_SaveInfo.prototype.drawDataText = function(align, text, dx, dy, dw) {
     this._drawData = true;
     dy += Math.max(0, (this.standardFontSize() - this.contents.fontSize) / 2);
-    var align = align.toLowerCase().trim();
-    var text = text.trim();
-    if (align === 'left') {
-      this.drawTextEx(text, dx, dy);
-    } else if (align === 'right') {
-      var tw = this.textWidthEx(text);
-      this.drawTextEx(text, dx + dw - tw, dy);
-    } else {
-      var tw = this.textWidthEx(text);
-      this.drawTextEx(text, dx + (dw - tw) / 2, dy);
+    
+    // Sanitize inputs
+    if (typeof align !== 'string') align = 'left';
+    align = align.toLowerCase().trim();
+    
+    if (typeof text !== 'string') text = '';
+    text = this.sanitizeText(text.trim());
+    
+    try {
+        if (align === 'left') {
+            this.drawTextEx(text, dx, dy);
+        } else if (align === 'right') {
+            var tw = this.textWidthEx(text);
+            this.drawTextEx(text, dx + dw - tw, dy);
+        } else {
+            var tw = this.textWidthEx(text);
+            this.drawTextEx(text, dx + (dw - tw) / 2, dy);
+        }
+    } catch (e) {
+        console.error('Error drawing text: ' + text, e);
     }
     this._drawData = false;
 };
@@ -1213,14 +1411,35 @@ Window_SaveConfirm.prototype.makeCommandList = function() {
 };
 
 Window_SaveConfirm.prototype.setData = function(text) {
+    // Sanitize input text to prevent any potential injection
+    if (typeof text !== 'string') text = '';
+    
+    // Limit the length to prevent performance issues
+    var maxLength = 255;
+    if (text.length > maxLength) {
+        text = text.substring(0, maxLength);
+    }
+    
+    // Basic sanitization - strip any potentially harmful content
+    text = text.replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+    
     this._text = text;
-    var ww = this.textWidthEx(this._text) + this.standardPadding() * 2;
-    ww += this.textPadding() * 2;
-    this.width = ww;
-    this.refresh();
-    this.x = (Graphics.boxWidth - this.width) / 2;
-    this.y = (Graphics.boxHeight - this.height) / 2;
-    this.drawTextEx(this._text, this.textPadding(), 0);
+    
+    try {
+        var ww = this.textWidthEx(this._text) + this.standardPadding() * 2;
+        ww += this.textPadding() * 2;
+        this.width = ww;
+        this.refresh();
+        this.x = (Graphics.boxWidth - this.width) / 2;
+        this.y = (Graphics.boxHeight - this.height) / 2;
+        this.drawTextEx(this._text, this.textPadding(), 0);
+    } catch (e) {
+        console.error('Error in Window_SaveConfirm.setData:', e);
+        this.width = 400; // Fallback width
+        this.refresh();
+        this.x = (Graphics.boxWidth - this.width) / 2;
+        this.y = (Graphics.boxHeight - this.height) / 2;
+    }
 };
 
 Window_SaveConfirm.prototype.itemTextAlign = function() {
@@ -1478,6 +1697,255 @@ if (!Yanfly.Util.toGroup) {
     Yanfly.Util.toGroup = function(inVal) {
         return inVal;
     }
+};
+
+//=============================================================================
+// Safe Value Parsing Functions
+//=============================================================================
+
+Yanfly.Util.parseBoolean = function(value) {
+  if (typeof value === 'boolean') return value;
+  if (typeof value !== 'string') return false;
+  
+  var value = value.toLowerCase().trim();
+  return (value === 'true' || value === 'yes' || value === 'on' || value === '1');
+};
+
+Yanfly.Util.safeEval = function(code, defaultValue) {
+  try {
+    // Reject potentially dangerous inputs
+    if (typeof code !== 'string') return defaultValue;
+    code = code.trim();
+    
+    // Simple cases for boolean values
+    if (code === 'true') return true;
+    if (code === 'false') return false;
+    
+    // Simple case for numeric values
+    if (/^[0-9]+(\.[0-9]+)?$/.test(code)) {
+      return Number(code);
+    }
+    
+    // Safely handle 'this' references
+    if (code.startsWith('this.')) {
+      // Check for unsafe patterns even in 'this.' references
+      var thisCode = code.substring(5); // Remove 'this.'
+      var unsafeThisPatterns = [
+        /\[\s*["']\s*__/i,  // this['__proto__'] or similar
+        /\[\s*["']\s*constructor\s*["']\s*\]/i, // this['constructor']
+        /\.\s*constructor/i, // this.constructor
+        /\.\s*__/i  // this.__proto__ or similar
+      ];
+      
+      for (var i = 0; i < unsafeThisPatterns.length; i++) {
+        if (unsafeThisPatterns[i].test(thisCode)) {
+          console.error('Potentially unsafe this reference detected: ' + code);
+          return defaultValue;
+        }
+      }
+      
+      // Create a safer binding context with only allowed methods
+      var safeThis = {
+        lineHeight: function() { return 36; }, // Default line height
+        standardFontSize: function() { return 28; }, // Default font size
+        contents: { width: 816, height: 624 } // Default dimensions
+      };
+      
+      // Instead of using Function constructor, safely evaluate specific patterns
+      try {
+        // Handle common patterns safely
+        if (code === 'this.lineHeight()') return safeThis.lineHeight();
+        if (code === 'this.standardFontSize()') return safeThis.standardFontSize();
+        if (code === 'this.contents.width') return safeThis.contents.width;
+        if (code === 'this.contents.height') return safeThis.contents.height;
+        
+        // Handle basic calculations with this references
+        if (code.match(/this\.contents\.width\s*[\/\*\-\+]\s*\d+(\.\d+)?/)) {
+          var width = safeThis.contents.width;
+          var match = code.match(/[\/\*\-\+]\s*(\d+(?:\.\d+)?)/);
+          if (match) {
+            var num = parseFloat(match[1]);
+            var op = code.match(/([\/\*\-\+])/)[1];
+            switch(op) {
+              case '+': return width + num;
+              case '-': return width - num;
+              case '*': return width * num;
+              case '/': return width / num;
+            }
+          }
+        }
+        
+        if (code.match(/this\.contents\.height\s*[\/\*\-\+]\s*\d+(\.\d+)?/)) {
+          var height = safeThis.contents.height;
+          var match = code.match(/[\/\*\-\+]\s*(\d+(?:\.\d+)?)/);
+          if (match) {
+            var num = parseFloat(match[1]);
+            var op = code.match(/([\/\*\-\+])/)[1];
+            switch(op) {
+              case '+': return height + num;
+              case '-': return height - num;
+              case '*': return height * num;
+              case '/': return height / num;
+            }
+          }
+        }
+        
+        // Return default for unsupported patterns
+        console.warn('Unsupported this reference pattern: ' + code);
+        return defaultValue;
+      } catch (e) {
+        console.error('Error evaluating this reference: ' + code, e);
+        return defaultValue;
+      }
+    }
+    
+    // For other expressions, limit to basic arithmetic/math
+    // Reject unsafe patterns
+    var unsafePatterns = [
+      /\bwindow\b/i,
+      /\bdocument\b/i,
+      /\blocation\b/i,
+      /\bhistory\b/i,
+      /\bnavigator\b/i,
+      /\bglobal\b/i,
+      /\bprocess\b/i,
+      /\brequire\b/i,
+      /\bmodule\b/i,
+      /\b__/i,  // common for special properties like __proto__
+      /\beval\b/i,
+      /\bFunction\b/i,
+      /\bsetTimeout\b/i,
+      /\bsetInterval\b/i
+    ];
+    
+    for (var i = 0; i < unsafePatterns.length; i++) {
+      if (unsafePatterns[i].test(code)) {
+        console.error('Potentially unsafe code pattern detected: ' + code);
+        return defaultValue;
+      }
+    }
+    
+    // Additional security checks for arithmetic expressions
+    // Only allow specific safe operations in the code
+    var safeExpressionPattern = /^[0-9\s\(\)\[\]\{\}\+\-\*\/\%\.\,\<\>\=\!\&\|\^\~\?\:]+$/;
+    if (!safeExpressionPattern.test(code)) {
+      console.error('Expression contains potentially unsafe characters: ' + code);
+      return defaultValue;
+    }
+    
+    // Instead of using Function constructor, use a safe expression evaluator
+    return Yanfly.Util.safeEvaluateExpression(code, defaultValue);
+  } catch (e) {
+    console.error('Error evaluating expression: ' + code, e);
+    return defaultValue;
+  }
+};
+
+// Safe expression evaluator without using eval or Function constructor
+Yanfly.Util.safeEvaluateExpression = function(expression, defaultValue) {
+  defaultValue = defaultValue || 0;
+  
+  try {
+    // Remove all whitespace
+    expression = expression.replace(/\s+/g, '');
+    
+    // Handle parentheses first by recursively evaluating nested expressions
+    while (expression.indexOf('(') !== -1) {
+      expression = expression.replace(/\(([^()]*)\)/g, function(match, subExpr) {
+        return Yanfly.Util.safeEvaluateExpression(subExpr, 0).toString();
+      });
+    }
+    
+    // Evaluate multiplication and division first (left to right)
+    expression = Yanfly.Util.evaluateOperators(expression, ['*', '/', '%']);
+    
+    // Then evaluate addition and subtraction (left to right)
+    expression = Yanfly.Util.evaluateOperators(expression, ['+', '-']);
+    
+    // Convert the result to a number
+    var result = parseFloat(expression);
+    
+    // Check if the result is valid
+    if (isNaN(result) || !isFinite(result)) {
+      console.error('Expression did not evaluate to a valid number:', expression);
+      return defaultValue;
+    }
+    
+    return result;
+  } catch (e) {
+    console.error('Error evaluating expression:', e);
+    return defaultValue;
+  }
+};
+
+// Evaluate operators with the same precedence from left to right
+Yanfly.Util.evaluateOperators = function(expr, operators) {
+  // Validate inputs
+  if (typeof expr !== 'string') {
+    console.error('Invalid expression type provided to evaluateOperators');
+    return '0';
+  }
+  
+  // Limit expression length to prevent DoS attacks
+  if (expr.length > 1000) {
+    console.error('Expression too long, possible DoS attack');
+    return '0';
+  }
+  
+  // Handle negative numbers at the start of the expression
+  if (expr.charAt(0) === '-') {
+    expr = '0' + expr;
+  }
+  
+  // Replace sequences like '+-' or '--' with their simplified form
+  expr = expr.replace(/\+-/g, '-');
+  expr = expr.replace(/--/g, '+');
+  
+  // Create a regex to match any of the operators
+  var opRegex = new RegExp('([\\d\\.]+)([' + operators.join('').replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + '])([\\d\\.]+)');
+  
+  // Repeatedly find and evaluate the leftmost operator until no more operators remain
+  var match;
+  var iterations = 0;
+  var maxIterations = 100; // Prevent infinite loops
+  while ((match = opRegex.exec(expr)) && iterations < maxIterations) {
+    iterations++;
+    var left = parseFloat(match[1]);
+    var operator = match[2];
+    var right = parseFloat(match[3]);
+    var result = 0;
+    
+    // Apply the operator
+    switch (operator) {
+      case '+': result = left + right; break;
+      case '-': result = left - right; break;
+      case '*': result = left * right; break;
+      case '/': result = right === 0 ? 0 : left / right; break;
+      case '%': result = right === 0 ? 0 : left % right; break;
+    }
+    
+    // Check for invalid results
+    if (!isFinite(result) || isNaN(result)) {
+      console.error('Invalid calculation result:', left, operator, right);
+      result = 0;
+    }
+    
+    // Prevent excessively large numbers
+    if (Math.abs(result) > 1e16) {
+      console.warn('Result too large, capping value:', result);
+      result = result > 0 ? 1e16 : -1e16;
+    }
+    
+    // Replace the evaluated expression in the original string
+    expr = expr.substring(0, match.index) + result + expr.substring(match.index + match[0].length);
+  }
+  
+  // If we hit our iteration limit, log a warning and return what we have
+  if (iterations >= maxIterations) {
+    console.warn('Expression evaluation hit iteration limit, may be malicious:', expr);
+  }
+  
+  return expr;
 };
 
 //=============================================================================

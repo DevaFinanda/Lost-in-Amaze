@@ -233,11 +233,13 @@ Yanfly.Param.Footsteps = {
   defaultVolume:  Number(Yanfly.Parameters['Default Volume']),
   defaultPitch:   Number(Yanfly.Parameters['Default Pitch']),
 
-  PlayerEnable:   eval(String(Yanfly.Parameters['Player Enable'])),
+  // Using safer approach to convert string to boolean
+  PlayerEnable:   String(Yanfly.Parameters['Player Enable']).toLowerCase() === 'true',
   PlayerVolume:   parseFloat(Yanfly.Parameters['Player Volume']),
   PlayerPitch:    parseFloat(Yanfly.Parameters['Player Pitch']),
 
-  EventEnable:    eval(String(Yanfly.Parameters['Event Enable'])),
+  // Using safer approach to convert string to boolean
+  EventEnable:    String(Yanfly.Parameters['Event Enable']).toLowerCase() === 'true',
   EventVolume:    parseFloat(Yanfly.Parameters['Event Volume']),
   DistanceVolume: parseFloat(Yanfly.Parameters['Distance Volume']),
   EventPitch:     parseFloat(Yanfly.Parameters['Event Pitch']),

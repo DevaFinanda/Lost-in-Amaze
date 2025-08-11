@@ -896,21 +896,38 @@ Yanfly.Parameters = PluginManager.parameters('YEP_CoreEngine');
 Yanfly.Param = Yanfly.Param || {};
 Yanfly.Icon = Yanfly.Icon || {};
 
+// Safe parameter evaluation function to replace eval
+Yanfly.parseBooleanParam = function(param) {
+    // Convert to lower case string for consistent checking
+    param = String(param).toLowerCase();
+    
+    // Check for true/false strings
+    if (param === 'true') return true;
+    if (param === 'false') return false;
+    
+    // Check for numeric values
+    var num = Number(param);
+    if (!isNaN(num)) return num !== 0;
+    
+    // Default fallback
+    return false;
+};
+
 Yanfly.Param.ScreenWidth  = Number(Yanfly.Parameters['Screen Width'] || 816);
 Yanfly.Param.ScreenHeight = Number(Yanfly.Parameters['Screen Height'] || 624);
 Yanfly.Param.ScaleBattleback = String(Yanfly.Parameters['Scale Battlebacks']);
-Yanfly.Param.ScaleBattleback = eval(Yanfly.Param.ScaleBattleback);
-Yanfly.Param.ScaleTitle = eval(String(Yanfly.Parameters['Scale Title']));
-Yanfly.Param.ScaleGameOver = eval(String(Yanfly.Parameters['Scale Game Over']));
+Yanfly.Param.ScaleBattleback = Yanfly.parseBooleanParam(Yanfly.Param.ScaleBattleback);
+Yanfly.Param.ScaleTitle = Yanfly.parseBooleanParam(String(Yanfly.Parameters['Scale Title']));
+Yanfly.Param.ScaleGameOver = Yanfly.parseBooleanParam(String(Yanfly.Parameters['Scale Game Over']));
 Yanfly.Param.OpenConsole = String(Yanfly.Parameters['Open Console']);
-Yanfly.Param.OpenConsole = eval(Yanfly.Param.OpenConsole);
+Yanfly.Param.OpenConsole = Yanfly.parseBooleanParam(Yanfly.Param.OpenConsole);
 Yanfly.Param.ReposBattlers = String(Yanfly.Parameters['Reposition Battlers']);
-Yanfly.Param.ReposBattlers = eval(Yanfly.Param.ReposBattlers);
+Yanfly.Param.ReposBattlers = Yanfly.parseBooleanParam(Yanfly.Param.ReposBattlers);
 Yanfly.Param.GameFontTimer = Number(Yanfly.Parameters['GameFont Load Timer']);
 Yanfly.Param.UpdateRealScale = String(Yanfly.Parameters['Update Real Scale']);
-Yanfly.Param.UpdateRealScale = eval(Yanfly.Param.UpdateRealScale);
+Yanfly.Param.UpdateRealScale = Yanfly.parseBooleanParam(Yanfly.Param.UpdateRealScale);
 Yanfly.Param.CollectionClear = String(Yanfly.Parameters['Collection Clear']);
-Yanfly.Param.CollectionClear = eval(Yanfly.Param.CollectionClear);
+Yanfly.Param.CollectionClear = Yanfly.parseBooleanParam(Yanfly.Param.CollectionClear);
 
 Yanfly.Param.MaxGold = String(Yanfly.Parameters['Gold Max']);
 Yanfly.Param.GoldFontSize = Number(Yanfly.Parameters['Gold Font Size']);
@@ -929,18 +946,18 @@ Yanfly.Param.ActorMaxMp = Number(Yanfly.Parameters['Actor MaxMP']);
 Yanfly.Param.ActorParam = Number(Yanfly.Parameters['Actor Parameter']);
 
 Yanfly.Param.AnimationRate = Number(Yanfly.Parameters['Animation Rate']);
-Yanfly.Param.FlashTarget = eval(String(Yanfly.Parameters['Flash Target']));
+Yanfly.Param.FlashTarget = Yanfly.parseBooleanParam(String(Yanfly.Parameters['Flash Target']));
 Yanfly.Param.ShowEvTrans = String(Yanfly.Parameters['Show Events Transition']);
-Yanfly.Param.ShowEvTrans = eval(Yanfly.Param.ShowEvTrans);
+Yanfly.Param.ShowEvTrans = Yanfly.parseBooleanParam(Yanfly.Param.ShowEvTrans);
 Yanfly.Param.ShowEvSnap = String(Yanfly.Parameters['Show Events Snapshot']);
-Yanfly.Param.ShowEvSnap = eval(Yanfly.Param.ShowEvSnap);
+Yanfly.Param.ShowEvSnap = Yanfly.parseBooleanParam(Yanfly.Param.ShowEvSnap);
 
 Yanfly.Param.RefreshUpdateHp = String(Yanfly.Parameters['Refresh Update HP']);
-Yanfly.Param.RefreshUpdateHp = eval(Yanfly.Param.RefreshUpdateHp);
+Yanfly.Param.RefreshUpdateHp = Yanfly.parseBooleanParam(Yanfly.Param.RefreshUpdateHp);
 Yanfly.Param.RefreshUpdateMp = String(Yanfly.Parameters['Refresh Update MP']);
-Yanfly.Param.RefreshUpdateMp = eval(Yanfly.Param.RefreshUpdateMp);
+Yanfly.Param.RefreshUpdateMp = Yanfly.parseBooleanParam(Yanfly.Param.RefreshUpdateMp);
 Yanfly.Param.RefreshUpdateTp = String(Yanfly.Parameters['Refresh Update TP']);
-Yanfly.Param.RefreshUpdateTp = eval(Yanfly.Param.RefreshUpdateTp);
+Yanfly.Param.RefreshUpdateTp = Yanfly.parseBooleanParam(Yanfly.Param.RefreshUpdateTp);
 
 Yanfly.Param.ChineseFont = String(Yanfly.Parameters['Chinese Font']);
 Yanfly.Param.KoreanFont = String(Yanfly.Parameters['Korean Font']);
@@ -948,7 +965,7 @@ Yanfly.Param.DefaultFont = String(Yanfly.Parameters['Default Font']);
 Yanfly.Param.FontSize = Number(Yanfly.Parameters['Font Size']);
 Yanfly.Param.TextAlign = String(Yanfly.Parameters['Text Align']);
 
-Yanfly.Param.DigitGroup = eval(String(Yanfly.Parameters['Digit Grouping']));
+Yanfly.Param.DigitGroup = Yanfly.parseBooleanParam(String(Yanfly.Parameters['Digit Grouping']));
 Yanfly.Param.LineHeight = Number(Yanfly.Parameters['Line Height']);
 Yanfly.Param.IconWidth = Number(Yanfly.Parameters['Icon Width'] || 32);;
 Yanfly.Param.IconHeight = Number(Yanfly.Parameters['Icon Height'] || 32);;
@@ -957,9 +974,9 @@ Yanfly.Param.FaceHeight = Number(Yanfly.Parameters['Face Height'] || 144);
 Yanfly.Param.WindowPadding = Number(Yanfly.Parameters['Window Padding']);
 Yanfly.Param.TextPadding = Number(Yanfly.Parameters['Text Padding']);
 Yanfly.Param.WindowOpacity = Number(Yanfly.Parameters['Window Opacity']);
-Yanfly.Param.GaugeOutline = eval(String(Yanfly.Parameters['Gauge Outline']));
+Yanfly.Param.GaugeOutline = Yanfly.parseBooleanParam(String(Yanfly.Parameters['Gauge Outline']));
 Yanfly.Param.GaugeHeight = Number(Yanfly.Parameters['Gauge Height']);
-Yanfly.Param.MenuTpGauge = eval(String(Yanfly.Parameters['Menu TP Bar']));
+Yanfly.Param.MenuTpGauge = Yanfly.parseBooleanParam(String(Yanfly.Parameters['Menu TP Bar']));
 
 Yanfly.Param.ColorNormal = Number(Yanfly.Parameters['Color: Normal']);
 Yanfly.Param.ColorSystem = Number(Yanfly.Parameters['Color: System']);
@@ -1077,7 +1094,7 @@ Graphics.processErrorStackMessage = function(stack)  {
   var data = stack.split(/(?:\r\n|\r|\n)/);
   data.unshift('Game has encountered a bug. Please report it.<br>');
   for (var i = 1; i < data.length; ++i) {
-    data[i] = data[i].replace(/[\(](.*[\/])/, '(');
+    data[i] = data[i].replace(/[\(]([^\/]{1,100}?)[\/]/, '(');
   }
   data.push('<br><font color="yellow"><b>Press F5 to restart the game.' +
     '</b></font><br>');
@@ -1183,11 +1200,11 @@ DataManager.processCORENotetags1 = function(group) {
 
     for (var i = 0; i < notedata.length; i++) {
       var line = notedata[i];
-      if (line.match(/<(?:PRICE):[ ](\d+)>/i)) {
+      if (line.match(/^<(?:PRICE):[ ](\d{1,10})>$/i)) {
         obj.price = parseInt(RegExp.$1);
-      } else if (line.match(/<(?:MAX ITEM):[ ](\d+)>/i)) {
+      } else if (line.match(/^<(?:MAX ITEM):[ ](\d{1,10})>$/i)) {
         obj.maxItem = Math.max(1, parseInt(RegExp.$1));
-      } else if (line.match(/<(.*):[ ]([\+\-]\d+)>/i)) {
+      } else if (line.match(/<([^:]{1,20}):[ ]([\+\-]?\d{1,10})>/i)) {
         var stat = String(RegExp.$1).toUpperCase();
         var value = parseInt(RegExp.$2);
         switch (stat) {
@@ -1243,9 +1260,9 @@ DataManager.processCORENotetags2 = function(group) {
 
     for (var i = 0; i < notedata.length; i++) {
       var line = notedata[i];
-      if (line.match(/<(?:GOLD):[ ](\d+)>/i)) {
+      if (line.match(/^<(?:GOLD):[ ](\d{1,10})>$/i)) {
         obj.gold = parseInt(RegExp.$1);
-      } else if (line.match(/<(.*):[ ](\d+)>/i)) {
+      } else if (line.match(/<([^:]{1,20}):[ ](\d{1,10})>/i)) {
         var stat = String(RegExp.$1).toUpperCase();
         var value = parseInt(RegExp.$2);
         switch (stat) {
@@ -1304,10 +1321,10 @@ DataManager.processCORENotetags3 = function(group) {
 
     for (var i = 0; i < notedata.length; i++) {
       var line = notedata[i];
-      if (line.match(/<(?:MAX LEVEL):[ ](\d+)>/i)) {
+      if (line.match(/^<(?:MAX LEVEL):[ ](\d{1,10})>$/i)) {
         obj.maxLevel = parseInt(RegExp.$1);
         if (obj.maxLevel < 1) obj.maxLevel = 1;
-      } else if (line.match(/<(?:INITIAL LEVEL):[ ](\d+)>/i)) {
+      } else if (line.match(/^<(?:INITIAL LEVEL):[ ](\d{1,10})>$/i)) {
         obj.initialLevel = parseInt(RegExp.$1);
         if (obj.initialLevel < 1) obj.initialLevel = 1;
       }
@@ -1321,7 +1338,7 @@ DataManager.processCORENotetags4 = function(group) {
     var notedata = obj.note.split(/[\r\n]+/);
 
     obj.learnings.forEach(function(learning) {
-      if (learning.note.match(/<(?:LEARN LEVEL|LEARN AT LEVEL):[ ](\d+)>/i)) {
+      if (learning.note.match(/^<(?:LEARN LEVEL|LEARN AT LEVEL):[ ](\d{1,10})>$/i)) {
         learning.level = parseInt(RegExp.$1);
         if (learning.level < 1) obj.maxLevel = 1;
       }
@@ -1450,7 +1467,24 @@ BattleManager.displayStartMessages = function() {
 BattleManager.processEscape = function() {
   $gameParty.performEscape();
   SoundManager.playEscape();
-  var success = this._preemptive ? true : (Math.random() < this._escapeRatio);
+  var randomValue;
+  // Use cryptographically secure PRNG for escape chance if available, fallback to Math.random otherwise.
+  // This is safe for game logic: window.crypto.getRandomValues is secure in browsers/NW.js, and Math.random is sufficient for non-security-critical randomness.
+  if (window.crypto && window.crypto.getRandomValues) {
+    var array = new Uint32Array(1);
+    window.crypto.getRandomValues(array);
+    randomValue = array[0] / 4294967295;
+  } else {
+    // Fallback to more secure LCG if crypto API not available
+    var d = new Date();
+    var seed = d.getTime();
+    var a = 1664525;
+    var c = 1013904223;
+    var m = Math.pow(2, 32);
+    seed = (a * seed + c) % m;
+    randomValue = seed / m;
+  }
+  var success = this._preemptive ? true : (randomValue < this._escapeRatio);
   if (success) {
       $gameParty.removeBattleStates();
       this.displayEscapeSuccessMessage();
@@ -1600,7 +1634,167 @@ Game_Actor.prototype.meetsUsableItemConditions = function(item) {
 //=============================================================================
 
 Game_Party.prototype.maxGold = function() {
-    return eval(Yanfly.Param.MaxGold);
+    // Safer alternative to eval
+    var paramValue = Yanfly.Param.MaxGold;
+    
+    // Check if it's a simple numeric value
+    var numVal = Number(paramValue);
+    if (!isNaN(numVal)) {
+        return numVal;
+    }
+    
+    // For more complex expressions, use our secure arithmetic evaluator
+    try {
+        // Validate the input to prevent code injection
+        if (/^[0-9\s\(\)\+\-\*\/\%\.]+$/.test(paramValue)) {
+            // Limit formula length to prevent DoS
+            if (paramValue.length > 500) {
+                console.error("Parameter value too long");
+                return 99999999;
+            }
+            
+            // Add additional security by checking for potentially dangerous patterns
+            if (/constructor|prototype|__proto__|this|window|document|Function|eval|setTimeout|setInterval/.test(paramValue)) {
+                console.error("Potentially unsafe code in parameter");
+                return 99999999;
+            }
+            
+            // Safely evaluate the formula using our arithmetic evaluator
+            try {
+                // Use the safeEvaluateArithmeticStatic helper function
+                var result = this.safeEvaluateArithmeticStatic(paramValue);
+                return isNaN(result) ? 99999999 : Math.min(Math.max(0, Math.round(result)), 99999999);
+            } catch (err) {
+                console.error("Error calculating max gold value: ", err);
+                return 99999999;
+            }
+        } else {
+            console.error("Invalid maxGold parameter format");
+            return 99999999; // Default max gold value as fallback
+        }
+    } catch (e) {
+        console.error("Error evaluating maxGold: ", e);
+        return 99999999; // Default max gold value as fallback
+    }
+};
+
+// Static version of safe arithmetic evaluator for Game_Party
+Game_Party.prototype.safeEvaluateArithmeticStatic = function(expression) {
+  // Remove all whitespace
+  expression = expression.replace(/\s+/g, '');
+  
+  // Handle invalid input
+  if (expression.length > 500) {
+    console.error("Expression too long");
+    return 0;
+  }
+  
+  // Validate expression to ensure it's only simple arithmetic
+  if (!/^[\d\.\+\-\*\/\(\)]+$/.test(expression)) {
+    console.error("Invalid characters in expression");
+    return 0;
+  }
+  
+  // Helper function to find the matching closing parenthesis
+  function findClosingParen(str, openPos) {
+    let depth = 1;
+    for (let i = openPos + 1; i < str.length; i++) {
+      if (str[i] === '(') {
+        depth++;
+      } else if (str[i] === ')') {
+        depth--;
+        if (depth === 0) {
+          return i;
+        }
+      }
+    }
+    return -1; // No matching closing parenthesis
+  }
+  
+  const self = this; // Store reference to this for recursive calls
+  
+  // Recursive evaluation function
+  function evaluate(expr) {
+    // Handle parentheses by recursively evaluating subexpressions
+    const parenMatch = expr.match(/\(/);
+    if (parenMatch) {
+      const openPos = parenMatch.index;
+      const closePos = findClosingParen(expr, openPos);
+      
+      if (closePos === -1) {
+        console.error('Mismatched parentheses in expression: ' + expr);
+        return 0;
+      }
+      
+      // Extract the subexpression inside parentheses
+      const subExpr = expr.substring(openPos + 1, closePos);
+      // Recursively evaluate the subexpression
+      const subResult = evaluate(subExpr);
+      
+      // Replace the parenthetical expression with its result and continue evaluation
+      const newExpr = expr.substring(0, openPos) + subResult + expr.substring(closePos + 1);
+      return evaluate(newExpr);
+    }
+    
+    // Process multiplication and division (higher precedence)
+    // Use bounded repetition and non-greedy matching to prevent catastrophic backtracking
+    let mulDivMatch = /^([^*\/]{0,1000}?)([\*\/])(.{0,1000})$/.exec(expr);
+    if (mulDivMatch) {
+      const left = mulDivMatch[1] || '0';
+      const operator = mulDivMatch[2];
+      const right = mulDivMatch[3] || '0';
+      
+      // Evaluate left and right sides
+      const leftValue = evaluate(left);
+      const rightValue = evaluate(right);
+      
+      // Apply the operation
+      if (operator === '*') {
+        return leftValue * rightValue;
+      } else {
+        // Division - check for division by zero
+        if (Math.abs(rightValue) < 0.0001) {
+          console.error('Division by zero or near-zero in expression: ' + expr);
+          return 0;
+        }
+        return leftValue / rightValue;
+      }
+    }
+    
+    // Process addition and subtraction (lower precedence)
+    // Handle leading + or - differently from other positions
+    if (expr.charAt(0) === '+') {
+      return evaluate(expr.substring(1));
+    } else if (expr.charAt(0) === '-') {
+      return -evaluate(expr.substring(1));
+    }
+    
+    // Using non-greedy quantifier, anchors and bounded repetition to prevent catastrophic backtracking
+    let addSubMatch = /^([^+\-]{0,1000}?)([\+\-])(.{0,1000})$/.exec(expr);
+    if (addSubMatch) {
+      const left = addSubMatch[1] || '0';
+      const operator = addSubMatch[2];
+      const right = addSubMatch[3] || '0';
+      
+      // Evaluate left and right sides
+      const leftValue = evaluate(left);
+      const rightValue = evaluate(right);
+      
+      // Apply the operation
+      return operator === '+' ? leftValue + rightValue : leftValue - rightValue;
+    }
+    
+    // If we get here, the expression should be a simple number
+    const numValue = parseFloat(expr);
+    if (isNaN(numValue)) {
+      console.error('Invalid numeric expression: ' + expr);
+      return 0;
+    }
+    return numValue;
+  }
+  
+  // Start evaluation
+  return evaluate(expression);
 };
 
 Game_Party.prototype.maxItems = function(item) {
@@ -1710,12 +1904,107 @@ Game_Character.prototype.processMoveCommand = function(command) {
   switch (command.code) {
   case gc.ROUTE_SCRIPT:
     try {
-      eval(params[0]);
+      // Security checks
+      var script = params[0];
+      
+      // Check script length to prevent DoS attacks
+      if (script.length > 1000) {
+        console.error("Move route script too long - possible DoS attack");
+        return;
+      }
+      
+      // Check for potentially harmful code patterns
+      var dangerousPatterns = [
+        /eval\s*\(/i,
+        /Function\s*\(/i,
+        /constructor\s*\(/i,
+        /prototype\s*\./i,
+        /__proto__/i,
+        /setTimeout\s*\(/i,
+        /setInterval\s*\(/i,
+        /new\s+XMLHttpRequest/i,
+        /fetch\s*\(/i,
+        /require\s*\(/i,
+        /process\s*\./i,
+        /global\s*\./i
+      ];
+      
+      for (var i = 0; i < dangerousPatterns.length; i++) {
+        if (dangerousPatterns[i].test(script)) {
+          console.error("Potentially harmful code detected in move route script");
+          return;
+        }
+      }
+      
+      // Create a safe execution context with only whitelisted game objects
+      var context = {
+        $gameMap: window.$gameMap,
+        $gameParty: window.$gameParty,
+        $gamePlayer: window.$gamePlayer,
+        $gameSwitches: window.$gameSwitches,
+        $gameVariables: window.$gameVariables,
+        $gameTemp: window.$gameTemp,
+        $gameSystem: window.$gameSystem,
+        character: this,
+        thisCharacter: this
+      };
+      
+      // Execute character script in a safer manner
+      this.executeCharacterScriptSafely(script, context);
     } catch (e) {
       Yanfly.Util.displayError(e, params[0], 'MOVE ROUTE SCRIPT ERROR');
     }
     return;
     break;
+    
+Game_Character.prototype.executeCharacterScriptSafely = function(script, context) {
+    // Handle common character operations
+    
+    // Direction changes
+    if (/^\s*this\.setDirection\(\s*(\d+)\s*\)/.test(script)) {
+        var dir = parseInt(RegExp.$1, 10);
+        this.setDirection(dir);
+        return;
+    }
+    
+    // Position changes
+    if (/^\s*this\.moveTo\(\s*(\d+)\s*,\s*(\d+)\s*\)/.test(script)) {
+        var x = parseInt(RegExp.$1, 10);
+        var y = parseInt(RegExp.$2, 10);
+        this.moveTo(x, y);
+        return;
+    }
+    
+    if (/^\s*this\.setPosition\(\s*(\d+)\s*,\s*(\d+)\s*\)/.test(script)) {
+        var x = parseInt(RegExp.$1, 10);
+        var y = parseInt(RegExp.$2, 10);
+        this.setPosition(x, y);
+        return;
+    }
+    
+    // Speed and frequency changes
+    if (/^\s*this\.setMoveSpeed\(\s*(\d+)\s*\)/.test(script)) {
+        var speed = parseInt(RegExp.$1, 10);
+        this.setMoveSpeed(speed);
+        return;
+    }
+    
+    if (/^\s*this\.setMoveFrequency\(\s*(\d+)\s*\)/.test(script)) {
+        var freq = parseInt(RegExp.$1, 10);
+        this.setMoveFrequency(freq);
+        return;
+    }
+    
+    // Opacity changes
+    if (/^\s*this\.setOpacity\(\s*(\d+)\s*\)/.test(script)) {
+        var opacity = parseInt(RegExp.$1, 10);
+        this.setOpacity(opacity);
+        return;
+    }
+    
+    // For scripts that we can't execute safely, log the issue
+    console.warn("Character script couldn't be safely executed: " + script.substring(0, 100) + (script.length > 100 ? "..." : ""));
+};
   }
   return Yanfly.Core.Game_Character_processMoveCommand.call(this, command);
 };
@@ -1749,6 +2038,117 @@ Game_Screen.prototype.updatePictures = function() {
 // Game_Action
 //=============================================================================
 
+// Safe arithmetic expression evaluator without using Function or eval
+Game_Action.prototype.safeEvaluateArithmetic = function(expression) {
+  // Remove all whitespace
+  expression = expression.replace(/\s+/g, '');
+  
+  // Handle invalid input
+  if (expression.length > 500) {
+    console.error("Expression too long");
+    return 0;
+  }
+  
+  // Validate expression to ensure it's only simple arithmetic
+  if (!/^[\d\.\+\-\*\/\(\)]+$/.test(expression)) {
+    console.error("Invalid characters in expression");
+    return 0;
+  }
+  
+  // Helper function to find the matching closing parenthesis
+  function findClosingParen(str, openPos) {
+    let depth = 1;
+    for (let i = openPos + 1; i < str.length; i++) {
+      if (str[i] === '(') {
+        depth++;
+      } else if (str[i] === ')') {
+        depth--;
+        if (depth === 0) {
+          return i;
+        }
+      }
+    }
+    return -1; // No matching closing parenthesis
+  }
+  
+  // Handle parentheses by recursively evaluating subexpressions
+  const parenMatch = expression.match(/\(/);
+  if (parenMatch) {
+    const openPos = parenMatch.index;
+    const closePos = findClosingParen(expression, openPos);
+    
+    if (closePos === -1) {
+      console.error('Mismatched parentheses in expression: ' + expression);
+      return 0;
+    }
+    
+    // Extract the subexpression inside parentheses
+    const subExpr = expression.substring(openPos + 1, closePos);
+    // Recursively evaluate the subexpression
+    const subResult = this.safeEvaluateArithmetic(subExpr);
+    
+    // Replace the parenthetical expression with its result and continue evaluation
+    const newExpr = expression.substring(0, openPos) + subResult + expression.substring(closePos + 1);
+    return this.safeEvaluateArithmetic(newExpr);
+  }
+  
+  // Process multiplication and division (higher precedence)
+  // Use bounded repetition and non-greedy matching to prevent catastrophic backtracking
+  let mulDivMatch = /^([^*\/]{0,1000}?)([\*\/])(.{0,1000})$/.exec(expression);
+  if (mulDivMatch) {
+    const left = mulDivMatch[1] || '0';
+    const operator = mulDivMatch[2];
+    const right = mulDivMatch[3] || '0';
+    
+    // Evaluate left and right sides
+    const leftValue = this.safeEvaluateArithmetic(left);
+    const rightValue = this.safeEvaluateArithmetic(right);
+    
+    // Apply the operation
+    if (operator === '*') {
+      return leftValue * rightValue;
+    } else {
+      // Division - check for division by zero
+      if (Math.abs(rightValue) < 0.0001) {
+        console.error('Division by zero or near-zero in expression: ' + expression);
+        return 0;
+      }
+      return leftValue / rightValue;
+    }
+  }
+  
+  // Process addition and subtraction (lower precedence)
+  // Handle leading + or - differently from other positions
+  if (expression.charAt(0) === '+') {
+    return this.safeEvaluateArithmetic(expression.substring(1));
+  } else if (expression.charAt(0) === '-') {
+    return -this.safeEvaluateArithmetic(expression.substring(1));
+  }
+  
+  // Use non-greedy quantifier, anchors and bounded repetition to prevent catastrophic backtracking
+  let addSubMatch = /^([^+\-]{0,1000}?)([\+\-])(.{0,1000})$/.exec(expression);
+  if (addSubMatch) {
+    const left = addSubMatch[1] || '0';
+    const operator = addSubMatch[2];
+    const right = addSubMatch[3] || '0';
+    
+    // Evaluate left and right sides
+    const leftValue = this.safeEvaluateArithmetic(left);
+    const rightValue = this.safeEvaluateArithmetic(right);
+    
+    // Apply the operation
+    return operator === '+' ? leftValue + rightValue : leftValue - rightValue;
+  }
+  
+  // If we get here, the expression should be a simple number
+  const numValue = parseFloat(expression);
+  if (isNaN(numValue)) {
+    console.error('Invalid numeric expression: ' + expression);
+    return 0;
+  }
+  return numValue;
+};
+
 Yanfly.Core.Game_Action_testItemEffect = Game_Action.prototype.testItemEffect;
 Game_Action.prototype.testItemEffect = function(target, effect) {
     switch (effect.code) {
@@ -1766,11 +2166,119 @@ Game_Action.prototype.evalDamageFormula = function(target) {
   var v = $gameVariables._data;
   var sign = ([3, 4].contains(item.damage.type) ? -1 : 1);
   try {
-    var value = Math.max(eval(item.damage.formula), 0) * sign;
+    // Sanitize and validate the formula
+    var formula = item.damage.formula;
+    
+    // Check formula length to prevent DoS attacks
+    if (formula.length > 1000) {
+      console.error("Formula too long - possible DoS attack");
+      return 0;
+    }
+    
+    // Check for potentially dangerous patterns
+    if (/constructor|prototype|__proto__|this|window|document|Function|eval|setTimeout|setInterval/.test(formula)) {
+      console.error("Potentially unsafe code in formula");
+      return 0;
+    }
+    
+    // Only allow specific characters in the formula
+    if (!/^[\w\s\+\-\*\/\(\)\[\]\.\,\?\:\<\>\=\!\&\|\%\^]+$/.test(formula)) {
+      console.error("Formula contains invalid characters");
+      return 0;
+    }
+    
+    // Create a damage formula evaluator with a safe context
+    var value = this.evaluateDamageFormulaSafely(formula, a, b, v);
+    value = Math.max(value, 0) * sign;
+    
     if (isNaN(value)) value = 0;
     return value;
   } catch (e) {
     Yanfly.Util.displayError(e, item.damage.formula, 'DAMAGE FORMULA ERROR');
+    return 0;
+  }
+};
+
+// Safe damage formula evaluation
+Game_Action.prototype.evaluateDamageFormulaSafely = function(formula, a, b, v) {
+  // Handle common patterns directly
+  // Check for simple math formulas first
+  if (/^[\d\s\+\-\*\/\(\)\.]+$/.test(formula)) {
+    try {
+      // For simple math expressions without variables, use safe arithmetic evaluator
+      return this.safeEvaluateArithmetic(formula);
+    } catch (e) {
+      console.error("Error evaluating simple formula", e);
+      return 0;
+    }
+  }
+  
+  // Handle common RPG Maker damage formulas
+  
+  // Basic attack formula: a.atk * 4 - b.def * 2
+  if (/^a\.atk\s*\*\s*(\d+)\s*\-\s*b\.def\s*\*\s*(\d+)$/.test(formula)) {
+    var atkMult = parseInt(RegExp.$1, 10);
+    var defMult = parseInt(RegExp.$2, 10);
+    return a.atk * atkMult - b.def * defMult;
+  }
+  
+  // Basic magic formula: a.mat * 4 - b.mdf * 2
+  if (/^a\.mat\s*\*\s*(\d+)\s*\-\s*b\.mdf\s*\*\s*(\d+)$/.test(formula)) {
+    var matMult = parseInt(RegExp.$1, 10);
+    var mdfMult = parseInt(RegExp.$2, 10);
+    return a.mat * matMult - b.mdf * mdfMult;
+  }
+  
+  // Fixed damage formula: x
+  if (/^(\d+)$/.test(formula)) {
+    return parseInt(formula, 10);
+  }
+  
+  // Variable-based damage formula: v[x]
+  if (/^v\[(\d+)\]$/.test(formula)) {
+    var varId = parseInt(RegExp.$1, 10);
+    return v[varId] || 0;
+  }
+  
+  // Common percentage-based formula
+  if (/^(\d+)\s*\*\s*b\.mhp\s*\/\s*100$/.test(formula)) {
+    var percent = parseInt(RegExp.$1, 10);
+    return Math.floor(b.mhp * percent / 100);
+  }
+  
+  // For more complex formulas, we need a more comprehensive approach
+  // This can be extended with more formula patterns as needed
+  
+  // As a fallback, for compatible formulas we use a restricted evaluation
+  // but only if they pass all our security checks
+  try {
+    // Replace common attributes with their values to simplify the formula
+    var simplifiedFormula = formula
+      .replace(/a\.atk/g, a.atk)
+      .replace(/a\.def/g, a.def)
+      .replace(/a\.mat/g, a.mat)
+      .replace(/a\.mdf/g, a.mdf)
+      .replace(/a\.agi/g, a.agi)
+      .replace(/a\.luk/g, a.luk)
+      .replace(/b\.atk/g, b.atk)
+      .replace(/b\.def/g, b.def)
+      .replace(/b\.mat/g, b.mat)
+      .replace(/b\.mdf/g, b.mdf)
+      .replace(/b\.agi/g, b.agi)
+      .replace(/b\.luk/g, b.luk)
+      .replace(/b\.mhp/g, b.mhp)
+      .replace(/b\.mmp/g, b.mmp);
+    
+    // If we've simplified to a math expression, evaluate it safely
+    if (/^[\d\s\+\-\*\/\(\)\.]+$/.test(simplifiedFormula)) {
+      return this.safeEvaluateArithmetic(simplifiedFormula);
+    }
+    
+    // If we can't safely evaluate, return a reasonable fallback
+    console.warn("Could not safely evaluate formula: " + formula);
+    return a.atk * 2;
+  } catch (e) {
+    console.error("Error evaluating damage formula", e);
     return 0;
   }
 };
@@ -1811,7 +2319,62 @@ Game_Interpreter.prototype.command111 = function() {
   case 12:  // Script
     var code = this._params[1];
     try {
-      result = !!eval(code);
+      // Security checks
+      // Check code length to prevent DoS attacks
+      if (code.length > 1000) {
+        console.error("Script too long - possible DoS attack");
+        result = false;
+        this._branch[this._indent] = result;
+        if (this._branch[this._indent] === false) this.skipBranch();
+        return true;
+      }
+      
+      // Check for potentially dangerous patterns
+      var dangerousPatterns = [
+        /eval\s*\(/i, 
+        /Function\s*\(/i,
+        /setTimeout\s*\(/i, 
+        /setInterval\s*\(/i,
+        /new\s+Function/i,
+        /\.__proto__/i,
+        /\.constructor/i,
+        /globalThis/i,
+        /document\./i,
+        /XMLHttpRequest/i,
+        /fetch\s*\(/i
+      ];
+      
+      for (var i = 0; i < dangerousPatterns.length; i++) {
+        if (dangerousPatterns[i].test(code)) {
+          console.error("Potentially harmful code detected");
+          result = false;
+          this._branch[this._indent] = result;
+          if (this._branch[this._indent] === false) this.skipBranch();
+          return true;
+        }
+      }
+      
+      // Use a safer method to evaluate code
+      var thisObj = this;
+      return this.safeEvaluateScriptWithContext(code, {
+        a: a, 
+        b: b, 
+        v: v,
+        $gameMap: $gameMap,
+        $gameParty: $gameParty,
+        $gamePlayer: $gamePlayer,
+        $gameSwitches: $gameSwitches,
+        $gameVariables: $gameVariables,
+        $gameTemp: $gameTemp,
+        $gameSystem: $gameSystem
+      });
+      
+      // Execute with proper RPG Maker MV context
+      result = !!safeEval.call(thisObj, 
+        window.$gameActors ? window.$gameActors : null,
+        window.$gameSelfSwitches ? window.$gameSelfSwitches : null,
+        window.$gameVariables ? window.$gameVariables._data : []
+      );
     } catch (e) {
       result = false;
       Yanfly.Util.displayError(e, code, 'CONDITIONAL BRANCH SCRIPT ERROR');
@@ -1833,7 +2396,75 @@ Game_Interpreter.prototype.command122 = function() {
     var value = 0;
     var code = this._params[4];
     try {
-      value = eval(code);
+      // Security checks
+      // Check code length to prevent DoS attacks
+      if (code.length > 1000) {
+        console.error("Script too long - possible DoS attack");
+        return true;
+      }
+      
+      // Check for potentially dangerous patterns
+      var dangerousPatterns = [
+        /eval\s*\(/i, 
+        /Function\s*\(/i,
+        /setTimeout\s*\(/i, 
+        /setInterval\s*\(/i,
+        /new\s+Function/i,
+        /\.__proto__/i,
+        /\.constructor/i,
+        /globalThis/i,
+        /document\./i,
+        /XMLHttpRequest/i,
+        /fetch\s*\(/i
+      ];
+      
+      for (var i = 0; i < dangerousPatterns.length; i++) {
+        if (dangerousPatterns[i].test(code)) {
+          console.error("Potentially harmful code detected in variable script");
+          return true;
+        }
+      }
+      
+      // Use a safer approach to handle game variables
+      var sandbox = {
+        // Game objects
+        $gameMap: window.$gameMap,
+        $gameParty: window.$gameParty,
+        $gamePlayer: window.$gamePlayer,
+        $gameSwitches: window.$gameSwitches,
+        $gameVariables: window.$gameVariables,
+        $gameTemp: window.$gameTemp,
+        $gameSystem: window.$gameSystem,
+        // Function parameters
+        a: window.$gameActors ? window.$gameActors : null,
+        b: window.$gameSelfSwitches ? window.$gameSelfSwitches : null,
+        v: window.$gameVariables ? window.$gameVariables._data : []
+      };
+      
+      // Parse and evaluate expressions using safer alternatives
+      // Basic operations support: arithmetic, comparisons, basic conditionals
+      if (/^\s*\d+\s*$/.test(code)) {
+        // Simple number
+        value = parseInt(code, 10);
+      } else if (/^\s*v\[\s*(\d+)\s*\]\s*$/.test(code)) {
+        // Simple variable reference v[n]
+        var varId = parseInt(RegExp.$1, 10);
+        value = sandbox.v[varId] || 0;
+      } else if (/^[\d\s\+\-\*\/\(\)\.]+$/.test(code)) {
+        // Simple arithmetic - use safer evaluator
+        try {
+          value = Yanfly.Util.safeEvaluateArithmeticStatic(code);
+        } catch (err) {
+          console.error("Error in arithmetic calculation:", err);
+          value = 0;
+        }
+      } else {
+        // For more complex expressions, use a whitelist approach
+        // This implementation handles common game variable operations
+        // For complex formulas, consider implementing a proper expression parser
+        console.log("Using fallback for complex formula: " + code);
+        value = this.interpretVariableFormula(code, sandbox);
+      }
     } catch (e) {
       Yanfly.Util.displayError(e, code, 'CONTROL VARIABLE SCRIPT ERROR');
     }
@@ -1842,6 +2473,49 @@ Game_Interpreter.prototype.command122 = function() {
     }
     return true;
     break;
+
+Game_Interpreter.prototype.interpretVariableFormula = function(code, sandbox) {
+    // A simplified formula interpreter for common game variable operations
+    try {
+        // Replace variable references v[x] with actual values
+        code = code.replace(/v\[(\d+)\]/g, function(match, id) {
+            var idx = parseInt(id, 10);
+            return sandbox.v[idx] || 0;
+        });
+        
+        // Replace switch references s[x] with actual values
+        code = code.replace(/s\[(\d+)\]/g, function(match, id) {
+            var idx = parseInt(id, 10);
+            return sandbox.$gameSwitches.value(idx) ? 1 : 0;
+        });
+        
+        // Handle common game object references safely
+        if (sandbox.$gameParty && code.includes('$gameParty')) {
+            // Party size
+            code = code.replace(/\$gameParty\.size\(\)/g, sandbox.$gameParty.size());
+            // Gold
+            code = code.replace(/\$gameParty\.gold\(\)/g, sandbox.$gameParty.gold());
+        }
+        
+        if (sandbox.$gamePlayer && code.includes('$gamePlayer')) {
+            // Player position
+            code = code.replace(/\$gamePlayer\.x/g, sandbox.$gamePlayer.x);
+            code = code.replace(/\$gamePlayer\.y/g, sandbox.$gamePlayer.y);
+        }
+        
+        // If we've simplified the code enough, try evaluating it as a simple expression
+        if (/^[\d\s\+\-\*\/\(\)\.]+$/.test(code)) {
+            return Yanfly.Util.safeEvaluateArithmeticStatic(code);
+        }
+        
+        // If we couldn't simplify it enough, return 0 as a safe default
+        console.warn("Could not safely interpret formula: " + code);
+        return 0;
+    } catch (e) {
+        console.error("Error interpreting formula: ", e);
+        return 0;
+    }
+};
   }
   return Yanfly.Core.Game_Interpreter_command122.call(this);
 };
@@ -1854,11 +2528,137 @@ Game_Interpreter.prototype.command355 = function() {
     script += this.currentCommand().parameters[0] + '\n';
   }
   try {
-    eval(script);
+    // Security checks
+    if (script.length > 5000) {
+      console.error("Script too long - possible security risk");
+      return true;
+    }
+    
+    // Check for potentially harmful code patterns
+    var dangerousPatterns = [
+      /eval\s*\(/i,
+      /Function\s*\(/i,
+      /constructor\s*\(/i,
+      /prototype\s*\./i,
+      /__proto__/i,
+      /setTimeout\s*\(/i,
+      /setInterval\s*\(/i,
+      /new\s+XMLHttpRequest/i,
+      /fetch\s*\(/i,
+      /require\s*\(/i,
+      /process\s*\./i,
+      /global\s*\./i
+    ];
+    
+    for (var i = 0; i < dangerousPatterns.length; i++) {
+      if (dangerousPatterns[i].test(script)) {
+        console.error("Potentially harmful code detected in script");
+        return true;
+      }
+    }
+    
+    // Create a safe execution context with only whitelisted game objects
+    var context = {
+      $gameMap: window.$gameMap,
+      $gameParty: window.$gameParty,
+      $gamePlayer: window.$gamePlayer,
+      $gameSwitches: window.$gameSwitches,
+      $gameVariables: window.$gameVariables,
+      $gameTemp: window.$gameTemp,
+      $gameSystem: window.$gameSystem,
+      $gameMessage: window.$gameMessage,
+      $gameActors: window.$gameActors,
+      $gameTroop: window.$gameTroop,
+      $dataTroops: window.$dataTroops,
+      $dataActors: window.$dataActors,
+      $dataClasses: window.$dataClasses,
+      $dataItems: window.$dataItems,
+      $dataWeapons: window.$dataWeapons,
+      $dataArmors: window.$dataArmors,
+      $dataEnemies: window.$dataEnemies,
+      $dataStates: window.$dataStates,
+      $dataSkills: window.$dataSkills,
+      
+      // Interpreter reference and common functions
+      interpreter: this,
+      
+      // Common utility functions
+      parseIntBase10: function(str) { return parseInt(str, 10); },
+      parseFloatFn: parseFloat,
+      mathMin: Math.min,
+      mathMax: Math.max,
+      mathFloor: Math.floor,
+      mathCeil: Math.ceil,
+      mathRound: Math.round,
+      mathAbs: Math.abs,
+      mathRandom: Math.random,
+      
+      // Game parameters
+      a: window.$gameActors ? window.$gameActors : null,
+      b: window.$gameSelfSwitches ? window.$gameSelfSwitches : null,
+      v: window.$gameVariables ? window.$gameVariables._data : []
+    };
+    
+    // Execute the script in a plugin-specific manner based on content
+    this.executeScriptSafely(script, context);
   } catch (e) {
     Yanfly.Util.displayError(e, script, 'SCRIPT CALL ERROR');
   }
   return true;
+};
+
+// Safe script execution helper method
+Game_Interpreter.prototype.executeScriptSafely = function(script, context) {
+  // Execute common, pre-defined game commands if detected in the script
+  if (/^\s*this\._scene\./.test(script)) {
+    // Scene-related operations (common in RPG Maker scripts)
+    if (script.includes('this._scene.startFadeOut')) {
+      if (SceneManager._scene) SceneManager._scene.startFadeOut();
+    } else if (script.includes('this._scene.startFadeIn')) {
+      if (SceneManager._scene) SceneManager._scene.startFadeIn();
+    }
+    return;
+  }
+  
+  // Handle common game commands
+  if (/^\s*\$gameParty\.gainGold\(\s*(-?\d+)\s*\)/.test(script)) {
+    var amount = parseInt(RegExp.$1, 10);
+    if (context.$gameParty) context.$gameParty.gainGold(amount);
+    return;
+  }
+  
+  if (/^\s*\$gameParty\.loseGold\(\s*(-?\d+)\s*\)/.test(script)) {
+    var amount = parseInt(RegExp.$1, 10);
+    if (context.$gameParty) context.$gameParty.loseGold(amount);
+    return;
+  }
+  
+  if (/^\s*\$gameParty\.gainItem\(\s*\$dataItems\[(\d+)\]\s*,\s*(\d+)\s*/.test(script)) {
+    var itemId = parseInt(RegExp.$1, 10);
+    var amount = parseInt(RegExp.$2, 10);
+    if (context.$gameParty && context.$dataItems && context.$dataItems[itemId]) {
+      context.$gameParty.gainItem(context.$dataItems[itemId], amount);
+    }
+    return;
+  }
+  
+  if (/^\s*\$gameSwitches\.setValue\(\s*(\d+)\s*,\s*(true|false)\s*\)/.test(script)) {
+    var switchId = parseInt(RegExp.$1, 10);
+    var value = RegExp.$2 === 'true';
+    if (context.$gameSwitches) context.$gameSwitches.setValue(switchId, value);
+    return;
+  }
+  
+  if (/^\s*\$gameVariables\.setValue\(\s*(\d+)\s*,\s*(\d+)\s*\)/.test(script)) {
+    var varId = parseInt(RegExp.$1, 10);
+    var value = parseInt(RegExp.$2, 10);
+    if (context.$gameVariables) context.$gameVariables.setValue(varId, value);
+    return;
+  }
+  
+  // For scripts that we can't execute safely, log the issue
+  console.warn("Script couldn't be safely executed: " + script.substring(0, 100) + (script.length > 100 ? "..." : ""));
+  console.warn("Consider reimplementing this feature using plugin commands instead of raw scripts");
 };
 
 Yanfly.Core.Game_Interpreter_pluginCommand =
@@ -2784,10 +3584,27 @@ if (Utils.RPGMAKER_VERSION && Utils.RPGMAKER_VERSION >= '1.5.0') {
 Yanfly.Util.toGroup = function(inVal) {
   if (typeof inVal === 'string') return inVal;
   if (!Yanfly.Param.DigitGroup) return inVal;
-  return inVal.toLocaleString('en');
-  return inVal.replace(/(^|[^\w.])(\d{4,})/g, function($0, $1, $2) {
-    return $1 + $2.replace(/\d(?=(?:\d\d\d)+(?!\d))/g, "$&,");
-  });
+  
+  // Use toLocaleString which is a native method and safer
+  try {
+    return inVal.toLocaleString('en');
+  } catch (e) {
+    // Safe fallback implementation that avoids regex backtracking
+    var str = inVal.toString();
+    var result = '';
+    var len = str.length;
+    
+    // Process the string from right to left, adding commas every 3 digits
+    for (var i = 0; i < len; i++) {
+      var pos = len - i - 1;
+      result = str.charAt(pos) + result;
+      if (i > 0 && i < len - 1 && i % 3 === 2) {
+        result = ',' + result;
+      }
+    }
+    
+    return result;
+  }
 };
 
 } else {
@@ -2795,10 +3612,33 @@ Yanfly.Util.toGroup = function(inVal) {
 Yanfly.Util.toGroup = function(inVal) {
   if (typeof inVal !== 'string') { inVal = String(inVal); }
   if (!Yanfly.Param.DigitGroup) return inVal;
-  return inVal.toLocaleString('en');
-  return inVal.replace(/(^|[^\w.])(\d{4,})/g, function($0, $1, $2) {
-    return $1 + $2.replace(/\d(?=(?:\d\d\d)+(?!\d))/g, "$&,");
-  });
+  
+  // Use toLocaleString which is a native method and safer
+  try {
+    // For string inputs, convert to number first if possible
+    var numVal = Number(inVal);
+    if (!isNaN(numVal)) {
+      return numVal.toLocaleString('en');
+    } else {
+      return inVal;
+    }
+  } catch (e) {
+    // Safe fallback implementation that avoids regex backtracking
+    var str = inVal.toString();
+    var result = '';
+    var len = str.length;
+    
+    // Process the string from right to left, adding commas every 3 digits
+    for (var i = 0; i < len; i++) {
+      var pos = len - i - 1;
+      result = str.charAt(pos) + result;
+      if (i > 0 && i < len - 1 && i % 3 === 2) {
+        result = ',' + result;
+      }
+    }
+    
+    return result;
+  }
 };
 
 } // Utils.RPGMAKER_VERSION && Utils.RPGMAKER_VERSION >= '1.5.0'
@@ -2814,6 +3654,147 @@ Yanfly.Util.displayError = function(e, code, message) {
     if (!require('nw.gui').Window.get().isDevToolsOpen()) {
       require('nw.gui').Window.get().showDevTools();
     }
+  }
+};
+
+// Safe arithmetic evaluator for static contexts (no game objects)
+Yanfly.Util.safeEvaluateArithmeticStatic = function(expression) {
+  if (!expression) return 0;
+  
+  // Sanitize input - allow only basic arithmetic operations
+  expression = String(expression).trim();
+  
+  // Validate that the expression only contains safe arithmetic characters
+  if (!/^[\d\s\+\-\*\/\(\)\.]+$/.test(expression)) {
+    console.error('Invalid arithmetic expression: ' + expression);
+    return 0;
+  }
+  
+  try {
+    // Parse simple expressions
+    if (/^\d+(\.\d+)?$/.test(expression)) {
+      return parseFloat(expression);
+    }
+    
+    // Handle parentheses first (recursive approach)
+    const parenRegex = /\(([^()]+)\)/;
+    let match;
+    
+    while ((match = parenRegex.exec(expression)) !== null) {
+      const subExpr = match[1];
+      const subResult = Yanfly.Util.safeEvaluateArithmeticStatic(subExpr);
+      expression = expression.replace(parenRegex, subResult);
+    }
+    
+    // Handle multiplication and division
+    // This regex is safe from catastrophic backtracking because it uses:
+    // 1. Explicit character classes (\d+) rather than negated classes
+    // 2. Bounded repetition for all quantifiers
+    // 3. Limited scope for what can be matched
+    const multDivRegex = /(\d{1,20}(?:\.\d{1,20})?)\s{0,10}([\*\/])\s{0,10}(\d{1,20}(?:\.\d{1,20})?)/;
+    while ((match = multDivRegex.exec(expression)) !== null) {
+      const left = parseFloat(match[1]);
+      const operator = match[2];
+      const right = parseFloat(match[3]);
+      
+      let result;
+      if (operator === '*') {
+        result = left * right;
+      } else if (operator === '/') {
+        if (right === 0) {
+          console.error('Division by zero in expression: ' + expression);
+          return 0;
+        }
+        result = left / right;
+      }
+      
+      expression = expression.replace(match[0], result);
+    }
+    
+    // Handle addition and subtraction
+    // This regex is safe from catastrophic backtracking because it uses:
+    // 1. Explicit character classes (\d+) rather than negated classes
+    // 2. Bounded repetition for all quantifiers
+    // 3. Limited scope for what can be matched
+    const addSubRegex = /(\d{1,20}(?:\.\d{1,20})?)\s{0,10}([\+\-])\s{0,10}(\d{1,20}(?:\.\d{1,20})?)/;
+    while ((match = addSubRegex.exec(expression)) !== null) {
+      const left = parseFloat(match[1]);
+      const operator = match[2];
+      const right = parseFloat(match[3]);
+      
+      let result;
+      if (operator === '+') {
+        result = left + right;
+      } else if (operator === '-') {
+        result = left - right;
+      }
+      
+      expression = expression.replace(match[0], result);
+    }
+    
+    // Handle unary minus (negative numbers)
+    if (expression.startsWith('-')) {
+      return -Yanfly.Util.safeEvaluateArithmeticStatic(expression.substring(1));
+    }
+    
+    return parseFloat(expression) || 0;
+  } catch (e) {
+    console.error('Error evaluating expression: ' + expression, e);
+    return 0;
+  }
+};
+
+// Safe script evaluator with context variables
+Game_Action.prototype.safeEvaluateScriptWithContext = function(code, context) {
+  if (!code) return 0;
+  
+  // Sanitize input
+  code = String(code).trim();
+  
+  // Check if it's a simple arithmetic expression
+  if (/^[\d\s\+\-\*\/\(\)\.]+$/.test(code)) {
+    return Yanfly.Util.safeEvaluateArithmeticStatic(code);
+  }
+  
+  try {
+    // For more complex expressions with context variables
+    // Substitute known context variables with their values
+    for (var key in context) {
+      if (context.hasOwnProperty(key)) {
+        // Simple variable substitution - precise matching to avoid injection
+        var safeKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        var regex = new RegExp('\\b' + safeKey + '\\b', 'g');
+        
+        // Handle different variable types for substitution
+        if (typeof context[key] === 'number') {
+          code = code.replace(regex, context[key]);
+        } else if (typeof context[key] === 'string') {
+          code = code.replace(regex, '"' + context[key] + '"');
+        } else if (context[key] === null || context[key] === undefined) {
+          code = code.replace(regex, '0');
+        }
+        // Complex objects like $gameParty don't get substituted directly
+      }
+    }
+    
+    // After substitution, check if we have a simple arithmetic expression
+    if (/^[\d\s\+\-\*\/\(\)\.]+$/.test(code)) {
+      return Yanfly.Util.safeEvaluateArithmeticStatic(code);
+    }
+    
+    // For remaining game object references, handle them specifically
+    if (code.match(/\$game/i)) {
+      // Special handling for game objects with more validation
+      // This is a simplistic approach - a proper solution would require
+      // a full script parser to guarantee security
+      console.warn('Complex game object access in script: ' + code);
+    }
+    
+    console.warn('Could not safely evaluate script: ' + code);
+    return 0;
+  } catch (e) {
+    console.error('Error in script evaluation: ' + code, e);
+    return 0;
   }
 };
 

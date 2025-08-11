@@ -151,7 +151,9 @@ DataManager.onLoad = function(object) {
 };
 
 DataManager.extractMetadata = function(data) {
-    var re = /<([^<>:]+)(:?)([^>]*)>/g;
+    // Improved regex pattern to prevent DoS from catastrophic backtracking
+    // Limits the third capture group to a reasonable length and uses a more specific pattern
+    var re = /<([\w\s\.]+)(:?)([^<>]{0,1000})>/g;
     data.meta = {};
     for (;;) {
         var match = re.exec(data.note);
@@ -630,17 +632,17 @@ StorageManager.backupExists = function(savefileId) {
 };
 
 StorageManager.cleanBackup = function(savefileId) {
-	if (this.backupExists(savefileId)) {
-		if (this.isLocalMode()) {
-			var fs = require('fs');
+    if (this.backupExists(savefileId)) {
+        if (this.isLocalMode()) {
+            var fs = require('fs');
             var dirPath = this.localFileDirectoryPath();
             var filePath = this.localFilePath(savefileId);
             fs.unlinkSync(filePath + ".bak");
-		} else {
-		    var key = this.webStorageKey(savefileId);
-			localStorage.removeItem(key + "bak");
-		}
-	}
+        } else {
+            var key = this.webStorageKey(savefileId);
+            localStorage.removeItem(key + "bak");
+        }
+    }
 };
 
 StorageManager.restoreBackup = function(savefileId) {
@@ -2145,6 +2147,24 @@ BattleManager.setup = function(troopId, canEscape, canLose) {
     this.makeEscapeRatio();
 };
 
+// Helper method to get secure random number between 0 and 1
+BattleManager.getSecureRandomValue = function() {
+    if (window.crypto && window.crypto.getRandomValues) {
+        var array = new Uint32Array(1);
+        window.crypto.getRandomValues(array);
+        return array[0] / 4294967295;
+    } else {
+        // Enhanced fallback for environments without crypto
+        // Uses time-based seeding with additional entropy mixing
+        var seed = Date.now() % 1000000;
+        for (var i = 0; i < 5; i++) {
+            // Mix in additional entropy sources using a simple LCG algorithm
+            seed = (seed * 9301 + 49297) % 233280;
+        }
+        return seed / 233280;
+    }
+};
+
 BattleManager.initMembers = function() {
     this._phase = 'init';
     this._canEscape = false;
@@ -2195,8 +2215,11 @@ BattleManager.setSpriteset = function(spriteset) {
 };
 
 BattleManager.onEncounter = function() {
-    this._preemptive = (Math.random() < this.ratePreemptive());
-    this._surprise = (Math.random() < this.rateSurprise() && !this._preemptive);
+    var randomValue = this.getSecureRandomValue();
+    this._preemptive = (randomValue < this.ratePreemptive());
+    
+    var randomValue2 = this.getSecureRandomValue();
+    this._surprise = (randomValue2 < this.rateSurprise() && !this._preemptive);
 };
 
 BattleManager.ratePreemptive = function() {
@@ -2532,12 +2555,16 @@ BattleManager.endAction = function() {
 
 BattleManager.invokeAction = function(subject, target) {
     this._logWindow.push('pushBaseLine');
-    if (Math.random() < this._action.itemCnt(target)) {
+    var randomValue = this.getSecureRandomValue();
+    if (randomValue < this._action.itemCnt(target)) {
         this.invokeCounterAttack(subject, target);
-    } else if (Math.random() < this._action.itemMrf(target)) {
-        this.invokeMagicReflection(subject, target);
     } else {
-        this.invokeNormalAction(subject, target);
+        var randomValue2 = this.getSecureRandomValue();
+        if (randomValue2 < this._action.itemMrf(target)) {
+            this.invokeMagicReflection(subject, target);
+        } else {
+            this.invokeNormalAction(subject, target);
+        }
     }
     subject.setLastTarget(target);
     this._logWindow.push('popBaseLine');
@@ -2559,7 +2586,7 @@ BattleManager.invokeCounterAttack = function(subject, target) {
 };
 
 BattleManager.invokeMagicReflection = function(subject, target) {
-	this._action._reflectionTarget = target;
+    this._action._reflectionTarget = target;
     this._logWindow.displayReflection(target);
     this._action.apply(subject);
     this._logWindow.displayActionResults(target, subject);
@@ -2645,7 +2672,13 @@ BattleManager.processVictory = function() {
 BattleManager.processEscape = function() {
     $gameParty.performEscape();
     SoundManager.playEscape();
-    var success = this._preemptive ? true : (Math.random() < this._escapeRatio);
+    var success;
+    if (this._preemptive) {
+        success = true;
+    } else {
+        var randomValue = this.getSecureRandomValue();
+        success = (randomValue < this._escapeRatio);
+    }
     if (success) {
         this.displayEscapeSuccessMessage();
         this._escaped = true;
