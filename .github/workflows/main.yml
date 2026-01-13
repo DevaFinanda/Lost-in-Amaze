@@ -1,0 +1,27 @@
+name: OTF Testing
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Functional Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Build AUT
+        run: docker build -t my-php-site .
+
+      - name: Run AUT
+        run: docker run -d -p 80:80 --name docker-aut my-php-site
+
+      - name: Check AUT
+        run: curl http://localhost
+
+      - name: Stop AUT
+        run: docker stop docker-aut
