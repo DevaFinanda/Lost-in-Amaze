@@ -1,4 +1,4 @@
-name: OTF Testing
+name: OTF Parallel Testing
 
 on:
   push:
@@ -7,15 +7,20 @@ on:
 
 jobs:
   test:
-    name: Functional Test
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        browser: [firefox, chrome, edge]
+
+    name: Test on ${{ matrix.browser }}
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Create isolated network
-        run: docker network create --driver bridge isolated
+        run: docker network create isolated
 
       - name: Build AUT
         run: docker build -t my-php-site .
@@ -23,34 +28,38 @@ jobs:
       - name: Run AUT
         run: docker run -d --network=isolated -p 80:80 --name docker-aut my-php-site
 
-      - name: Selenium Preparation
+      - name: Start Selenium Grid
         run: |
-          docker run -d \
-            --network=isolated \
-            -p 4444:4444 \
-            -p 7900:7900 \
-            --shm-size="2g" \
-            --name firefox-standalone \
-            selenium/standalone-firefox:latest
+          docker run -d --network=isolated -p 4444:4444 --name selenium-hub selenium/hub:latest
 
-      - name: Wait for Selenium Hub
-        run: sh wait.sh
+          docker run -d --network=isolated -e SE_EVENT_BUS_HOST=selenium-hub \
+            -e SE_EVENT_BUS_PUBLISH_PORT=4442 \
+            -e SE_EVENT_BUS_SUBSCRIBE_PORT=4443 \
+            selenium/node-firefox:latest
 
-      - name: Check the Hub
-        run: curl http://localhost:4444/ui
+          docker run -d --network=isolated -e SE_EVENT_BUS_HOST=selenium-hub \
+            -e SE_EVENT_BUS_PUBLISH_PORT=4442 \
+            -e SE_EVENT_BUS_SUBSCRIBE_PORT=4443 \
+            selenium/node-chrome:latest
+
+          docker run -d --network=isolated -e SE_EVENT_BUS_HOST=selenium-hub \
+            -e SE_EVENT_BUS_PUBLISH_PORT=4442 \
+            -e SE_EVENT_BUS_SUBSCRIBE_PORT=4443 \
+            selenium/node-edge:latest
+
+      - name: Wait for Selenium
+        run: sleep 15
 
       - name: Install Selenium client
         run: pip install -U selenium
 
       - name: Run test
-        run: python tests/hello_aut1.py http://docker-aut
+        env:
+          BROWSER: ${{ matrix.browser }}
+        run: python tests/hello_aut.py http://docker-aut
 
-      - name: Upload Artifact
+      - name: Upload Screenshot
         uses: actions/upload-artifact@v4
         with:
-          name: Screenshot
-          path: screenshot.png
-
-      - name: Stop docker
-        run: |
-          docker stop docker-aut firefox-standalone
+          name: Screenshot-${{ matrix.browser }}
+          path: screenshot-${{ matrix.browser }}.png

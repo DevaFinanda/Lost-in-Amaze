@@ -1,30 +1,40 @@
-import unittest, sys
+import unittest, sys, os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
 class AutTest(unittest.TestCase):
 
     def setUp(self):
-        options = webdriver.FirefoxOptions()
+        browser_name = os.getenv("BROWSER", "firefox")
+
+        if browser_name == "chrome":
+            options = webdriver.ChromeOptions()
+        elif browser_name == "edge":
+            options = webdriver.EdgeOptions()
+        else:
+            options = webdriver.FirefoxOptions()
+
         options.add_argument('--ignore-ssl-errors=yes')
         options.add_argument('--ignore-certificate-errors')
-        server = 'http://localhost:4444'
 
-        self.browser = webdriver.Remote(command_executor=server, options=options)
+        server = 'http://localhost:4444/wd/hub'
+
+        self.browser = webdriver.Remote(
+            command_executor=server,
+            options=options
+        )
         self.addCleanup(self.browser.quit)
 
     def test_homepage(self):
-        if len(sys.argv) > 1:
-            url = sys.argv[1]
-        else:
-            url = "http://localhost"
-
+        url = sys.argv[1] if len(sys.argv) > 1 else "http://localhost"
         self.browser.get(url)
-        expected_result = "Welcome back, Guest!"
-        actual_result = self.browser.find_element(By.TAG_NAME, 'p')
 
-        self.assertIn(expected_result, actual_result.text)
+        self.browser.save_screenshot(f'screenshot-{os.getenv("BROWSER")}.png')
 
-if __name__ == '__main__':
-    # 'first-arg-is-ignored' digunakan agar unittest tidak bingung membaca argumen URL
-    unittest.main(argv=['first-arg-is-ignored'], verbosity=2, warnings='ignore')
+        expected = "Welcome back, Guest!"
+        actual = self.browser.find_element(By.TAG_NAME, 'p')
+        self.assertIn(expected, actual.text)
+
+
+if __name__ == "__main__":
+    unittest.main(argv=['first-arg-is-ignored'], verbosity=2)
