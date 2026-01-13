@@ -10,15 +10,16 @@ jobs:
     name: Functional Test
     runs-on: ubuntu-latest
 
+    env:
+      URL: http://localhost
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # Build AUT (PHP Web)
       - name: Build AUT
         run: docker build -t my-php-site .
 
-      # Run AUT
       - name: Run AUT
         run: docker run -d -p 80:80 --name docker-aut my-php-site
 
@@ -26,33 +27,23 @@ jobs:
         run: sleep 10
 
       - name: Check AUT
-        run: curl http://127.0.0.1
+        run: curl http://localhost
 
-      # Run Selenium Standalone Firefox
       - name: Selenium Preparation
-        run: |
-          docker run -d \
-            --network=host \
-            -p 4444:4444 \
-            --name firefox-standalone \
-            selenium/standalone-firefox:latest
+        run: docker run -d --network host --name firefox-standalone selenium/standalone-firefox:latest
 
-      # Wait until Selenium Hub ready
       - name: Wait for Selenium Hub
         run: sh wait.sh
 
       - name: Check the Hub
         run: curl http://localhost:4444/ui
 
-      # Install Selenium client
       - name: Install Selenium client
         run: pip install -U selenium
 
-      # Run Selenium Test
       - name: Run test
-        run: python tests/hello_example.py
+        run: python tests/hello_aut.py ${{ env.URL }}
 
-      # Stop all containers
       - name: Stop docker
         run: |
           docker stop docker-aut
