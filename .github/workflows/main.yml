@@ -11,47 +11,49 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout source code
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # 2. Build AUT Docker image
+      # Build AUT (PHP Web)
       - name: Build AUT
         run: docker build -t my-php-site .
 
-      # 3. Run AUT container
+      # Run AUT
       - name: Run AUT
         run: docker run -d -p 80:80 --name docker-aut my-php-site
 
-      # 4. Wait for AUT to be ready
       - name: Wait for AUT
         run: sleep 10
 
-      # 5. Check AUT availability
       - name: Check AUT
         run: curl http://127.0.0.1
 
-      # 6. Pull and run Selenium Standalone Firefox
+      # Run Selenium Standalone Firefox
       - name: Selenium Preparation
         run: |
-          docker pull selenium/standalone-firefox:latest
           docker run -d \
+            --network=host \
             -p 4444:4444 \
             --name firefox-standalone \
             selenium/standalone-firefox:latest
 
-      # 7. Wait for Selenium Hub
+      # Wait until Selenium Hub ready
       - name: Wait for Selenium Hub
-        run: sleep 15
+        run: sh wait.sh
 
-      # 8. Check Selenium Hub status
-      - name: Check Selenium Hub
-        run: curl http://127.0.0.1:4444/wd/hub/status
+      - name: Check the Hub
+        run: curl http://localhost:4444/ui
 
-      # 9. Stop Selenium container
-      - name: Stop Selenium
-        run: docker stop firefox-standalone
+      # Install Selenium client
+      - name: Install Selenium client
+        run: pip install -U selenium
 
-      # 10. Stop AUT container
-      - name: Stop AUT
-        run: docker stop docker-aut
+      # Run Selenium Test
+      - name: Run test
+        run: python tests/hello_example.py
+
+      # Stop all containers
+      - name: Stop docker
+        run: |
+          docker stop docker-aut
+          docker stop firefox-standalone
