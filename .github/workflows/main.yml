@@ -20,8 +20,11 @@ jobs:
       - name: Run AUT
         run: docker run -d -p 80:80 --name docker-aut my-php-site
 
+      - name: Wait for AUT
+        run: sleep 10
+
       - name: Check AUT
-        run: curl http://localhost
+        run: curl http://127.0.0.1
 
       - name: Stop AUT
         run: docker stop docker-aut
