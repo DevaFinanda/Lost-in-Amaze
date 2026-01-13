@@ -10,27 +10,28 @@ jobs:
     name: Functional Test
     runs-on: ubuntu-latest
 
-    env:
-      URL: http://localhost
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+
+      - name: Create isolated network
+        run: docker network create --driver bridge isolated
 
       - name: Build AUT
         run: docker build -t my-php-site .
 
       - name: Run AUT
-        run: docker run -d -p 80:80 --name docker-aut my-php-site
-
-      - name: Wait for AUT
-        run: sleep 10
-
-      - name: Check AUT
-        run: curl http://localhost
+        run: docker run -d --network=isolated -p 80:80 --name docker-aut my-php-site
 
       - name: Selenium Preparation
-        run: docker run -d --network host --name firefox-standalone selenium/standalone-firefox:latest
+        run: |
+          docker run -d \
+            --network=isolated \
+            -p 4444:4444 \
+            -p 7900:7900 \
+            --shm-size="2g" \
+            --name firefox-standalone \
+            selenium/standalone-firefox:latest
 
       - name: Wait for Selenium Hub
         run: sh wait.sh
@@ -42,9 +43,14 @@ jobs:
         run: pip install -U selenium
 
       - name: Run test
-        run: python tests/hello_aut.py ${{ env.URL }}
+        run: python tests/hello_aut1.py http://docker-aut
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Screenshot
+          path: screenshot.png
 
       - name: Stop docker
         run: |
-          docker stop docker-aut
-          docker stop firefox-standalone
+          docker stop docker-aut firefox-standalone
